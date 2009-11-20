@@ -197,12 +197,19 @@ evmap_make_space(struct event_signal_map *map, int slot, int msize)
 		int nentries = map->nentries ? map->nentries : 32;
 		void **tmp;
 
-		while (nentries <= slot)
-			nentries <<= 1;
+		while (nentries && nentries <= slot) {
+			nentries = EVUTIL_SAFE_DOUBLE(nentries);
+		}
+		if (!nentries) {
+			event_warnx("%s: integer overflow",__func__);
+			return -1;
+		}
 
-		tmp = (void **)mm_realloc(map->entries, nentries * msize);
-		if (tmp == NULL)
+		tmp = EVUTIL_SAFE_REALLOC(map->entries, nentries, msize);
+		if (tmp == NULL) {
+			event_warn("%s: realloc",__func__);
 			return (-1);
+		}
 
 		memset(&tmp[map->nentries], 0,
 		    (nentries - map->nentries) * msize);

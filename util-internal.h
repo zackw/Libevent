@@ -234,6 +234,19 @@ evutil_getaddrinfo_async(struct evdns_base *dns_base,
     const struct evutil_addrinfo *hints_in,
     void (*cb)(int, struct evutil_addrinfo *, void *), void *arg);
 
+/** Variant of mm_realloc(p,count*sz) that checks count*sz for overflow.
+ * If possible, make sz be a constant so that we can avoid run-time
+ * division.
+ */
+#define EVUTIL_SAFE_REALLOC(p,count,sz)		(			\
+		EVUTIL_UNLIKELY((count) > (EV_SIZE_MAX/(sz)) ) ?	\
+		((errno = ENOMEM), NULL) :				\
+		(mm_realloc((p), (count)*((size_t)(sz))))		\
+	     )
+
+#define EVUTIL_SAFE_DOUBLE(n)			\
+	(EVUTIL_UNLIKELY(((n)*2)<(n))?0:(n)*2)
+
 #ifdef __cplusplus
 }
 #endif

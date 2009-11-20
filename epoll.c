@@ -187,12 +187,13 @@ epoll_dispatch(struct event_base *base, struct timeval *tv)
 
 	if (res == epollop->nevents && epollop->nevents < MAX_NEVENT) {
 		/* We used all of the event space this time.  We should
-		   be ready for more events next time. */
-		int new_nevents = epollop->nevents * 2;
+		   be ready for more events next time. It's okay if we
+		   overflows, though. */
+		int new_nevents = epollop->nevents * 2;/*can't overflow*/
 		struct epoll_event *new_events;
 
-		new_events = mm_realloc(epollop->events,
-		    new_nevents * sizeof(struct epoll_event));
+		new_events = EVUTIL_SAFE_REALLOC(epollop->events,
+		    new_nevents, sizeof(struct epoll_event));
 		if (new_events) {
 			epollop->events = new_events;
 			epollop->nevents = new_nevents;

@@ -61,7 +61,8 @@
 #include "event2/thread.h"
 #include "evthread-internal.h"
 
-#define NEVENT		64
+#define NEVENT		32
+#define MAX_NEVENT      4096
 
 struct kqop {
 	struct kevent *changes;
@@ -182,10 +183,12 @@ kq_insert(struct kqop *kqop, struct kevent *kev)
 	if (kqop->nchanges == size) {
 		struct kevent *newchange;
 
-		size *= 2;
-
-		newchange = mm_realloc(kqop->changes,
-				    size * sizeof(struct kevent));
+		size = EVUTIL_SAFE_DOUBLE(size);
+		if (!size) {
+			event_warnx("%s: integer overflow", __func__);
+		}
+		newchange = EVUTIL_SAFE_REALLOC(kqop->changes,
+		    size, sizeof(struct kevent));
 		if (newchange == NULL) {
 			event_warn("%s: malloc", __func__);
 			return (-1);
@@ -300,14 +303,14 @@ kq_dispatch(struct event_base *base, struct timeval *tv)
 		}
 	}
 
-	if (res == kqop->events_size) {
+	if (res == kqop->events_size && kqop->events_size < MAX_NEVENT) {
 		struct kevent *newresult;
 		int size = kqop->events_size;
 		/* We used all the events space that we have. Maybe we should
-		   make it bigger. */
+		   make it bigger.  It's okay if we can't, though. */
 		size *= 2;
-		newresult = mm_realloc(kqop->events,
-		    size * sizeof(struct kevent));
+		newresult = EVUTIL_SAFE_REALLOC(kqop->events,
+		    size, sizeof(struct kevent));
 		if (newresult) {
 			kqop->events = newresult;
 			kqop->events_size = size;

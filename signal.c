@@ -164,7 +164,8 @@ _evsig_set_handler(struct event_base *base,
 		int new_max = evsignal + 1;
 		event_debug(("%s: evsignal (%d) >= sh_old_max (%d), resizing",
 			    __func__, evsignal, sig->sh_old_max));
-		p = mm_realloc(sig->sh_old, new_max * sizeof(*sig->sh_old));
+		p = EVUTIL_SAFE_REALLOC(sig->sh_old, new_max,
+		    sizeof(*sig->sh_old));
 		if (p == NULL) {
 			event_warn("realloc");
 			return (-1);

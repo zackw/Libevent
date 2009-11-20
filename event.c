@@ -814,11 +814,13 @@ event_base_init_common_timeout(struct event_base *base,
 		goto done;
 	}
 	if (base->n_common_timeouts_allocated == base->n_common_timeouts) {
+		/* Can't overflow, since n_common_timeouts can't get too big. */
 		int n = base->n_common_timeouts < 16 ? 16 :
-		    base->n_common_timeouts*2;
-		struct common_timeout_list **newqueues =
-		    mm_realloc(base->common_timeout_queues,
-			n*sizeof(struct common_timeout_queue *));
+		    base->n_common_timeouts * 2;
+		struct common_timeout_list **newqueues;
+		newqueues =
+		    EVUTIL_SAFE_REALLOC(base->common_timeout_queues,
+			n, sizeof(struct common_timeout_queue *));
 		if (!newqueues) {
 			event_warn("%s: realloc",__func__);
 			goto done;

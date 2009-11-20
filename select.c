@@ -200,14 +200,21 @@ select_resize(struct selectop *sop, int fdsz)
 	n_events = (fdsz/sizeof(fd_mask)) * NFDBITS;
 	n_events_old = (sop->event_fdsz/sizeof(fd_mask)) * NFDBITS;
 
+	if (n_events < n_events_old) {
+		event_warnx("%s: Integer overflow", __func__);
+		return -1;
+	}
+
 	if (sop->event_readset_in)
 		check_selectop(sop);
 
 	if ((readset_in = mm_realloc(sop->event_readset_in, fdsz)) == NULL)
 		goto error;
-	sop->event_readset_in = readset_in;
-	if ((writeset_in = mm_realloc(sop->event_writeset_in, fdsz)) == NULL)
+	if ((writeset_in = mm_realloc(sop->event_writeset_in, fdsz)) == NULL) {
+		mm_free(readset_in);
 		goto error;
+	}
+	sop->event_readset_in = readset_in;
 	sop->event_writeset_in = writeset_in;
 	sop->resize_out_sets = 1;
 
@@ -245,9 +252,13 @@ select_add(struct event_base *base, int fd, short old, short events, void *p)
 		if (fdsz < sizeof(fd_mask))
 			fdsz = sizeof(fd_mask);
 
-		while (fdsz <
+		while (fdsz && fdsz <
 		    (howmany(fd + 1, NFDBITS) * sizeof(fd_mask)))
-			fdsz *= 2;
+			fdsz = EVUTIL_SAFE_DOUBLE(fdsz);
+		if (!fdsz) {
+			event_warnx("%s: Integer overflow", __func__);
+			return -1;
+		}
 
 		if (fdsz != sop->event_fdsz) {
 			if (select_resize(sop, fdsz)) {

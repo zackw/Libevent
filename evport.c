@@ -207,10 +207,15 @@ grow(struct evport_data *epdp, int factor)
 	int oldsize = epdp->ed_nevents;
 	int newsize = factor * oldsize;
 	EVUTIL_ASSERT(factor > 1);
+	if (newsize < oldsize) {
+		evutil_warnx("%s: Integer overflow", __func__);
+		return -1;
+	}
 
 	check_evportop(epdp);
 
-	tmp = mm_realloc(epdp->ed_fds, sizeof(struct fd_info) * newsize);
+	tmp = EVUTIL_SAFE_REALLOC(epdp->ed_fds, newsize,
+	    sizeof(struct fd_info));
 	if (NULL == tmp)
 		return -1;
 	epdp->ed_fds = tmp;
