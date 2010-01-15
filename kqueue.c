@@ -69,6 +69,17 @@
 
 #define NEVENT		64
 
+/* per-fd information tracked when using the kqueue backend. */
+struct kqidx {
+	/* Index in kqop->changes to the last attempt to add or delete
+	 * EVFILT_READ on this fd.  This value is cleared on dispatch by
+	 * setting it to -1 */
+	int read_idx;
+	/* Index in kqop->changes to the last attempt to add or delete
+	 * EVFILT_READ on this fd. */
+	int write_idx;
+};
+
 struct kqop {
 	struct kevent *changes;
 	int nchanges;
@@ -77,6 +88,9 @@ struct kqop {
 	int nevents;
 	int kq;
 	pid_t pid;
+
+	struct kqidx *change_idx;
+	int change_idx_size;
 };
 
 static void *kq_init	(struct event_base *);
@@ -134,6 +148,9 @@ kq_init(struct event_base *base)
 		return (NULL);
 	}
 	kqueueop->nevents = NEVENT;
+
+	kqueueop->change_idx = NULL;
+	kqueueop->change_idx_size = 0;
 
 	/* we need to keep track of multiple events per signal */
 	for (i = 0; i < NSIG; ++i) {
@@ -216,6 +233,47 @@ kq_sighandler(int sig)
 	/* Do nothing here */
 }
 
+#ifdef DEBUG_KQUEUE_CHANGEIDX
+static void
+changes_ok(struct kqop *kqop)
+{
+	struct kevent *changes = kqop->changes;
+	int i;
+
+	for (i = 0; i < kqop->nchanges; ++i) {
+		int fd = changes[i].ident;
+		if (changes[i].filter == EVFILT_READ) {
+			assert(kqop->change_idx[fd].read_idx == i);
+		} else if (changes[i].filter == EVFILT_WRITE) {
+			assert(kqop->change_idx[fd].write_idx == i);
+		}
+	}
+
+	for (i = 0; i < kqop->change_idx_size; ++i) {
+		struct kevent *c;
+		int idx;
+		if (kqop->change_idx[i].read_idx >= 0) {
+			idx = kqop->change_idx[i].read_idx;
+			assert(idx < kqop->nchanges);
+			c = &kqop->changes[idx];
+			assert(c->ident == i);
+			assert(c->filter == EVFILT_READ);
+		}
+		if (kqop->change_idx[i].write_idx >= 0) {
+			idx = kqop->change_idx[i].write_idx;
+			assert(idx < kqop->nchanges);
+			c = &kqop->changes[idx];
+
+			c = &kqop->changes[kqop->change_idx[i].write_idx];
+			assert(c->ident == i);
+			assert(c->filter == EVFILT_WRITE);
+		}
+	}
+}
+#else
+#define changes_ok(kqop) ((void)0)
+#endif
+
 static int
 kq_dispatch(struct event_base *base, void *arg, struct timeval *tv)
 {
@@ -229,6 +287,16 @@ kq_dispatch(struct event_base *base, void *arg, struct timeval *tv)
 	if (tv != NULL) {
 		TIMEVAL_TO_TIMESPEC(tv, &ts);
 		ts_p = &ts;
+	}
+
+	changes_ok(kqop);
+	for (i = 0; i < kqop->nchanges; ++i) {
+		int fd = changes[i].ident;
+		if (changes[i].filter == EVFILT_READ) {
+			kqop->change_idx[fd].read_idx = -1;
+		} else if (changes[i].filter == EVFILT_WRITE) {
+			kqop->change_idx[fd].write_idx = -1;
+		}
 	}
 
 	res = kevent(kqop->kq, changes, kqop->nchanges,
@@ -295,17 +363,45 @@ kq_dispatch(struct event_base *base, void *arg, struct timeval *tv)
 			event_active(ev, which, 1);
 		}
 	}
-
+	changes_ok(kqop);
 	return (0);
 }
 
+static struct kqidx *
+kqidx_get_for_fd(struct kqop *kqop, int fd)
+{
+	if (fd >= kqop->change_idx_size) {
+		int i;
+		int new_size = kqop->change_idx_size < 64 ?
+		    64 : kqop->change_idx_size * 2;
+		struct kqidx *new_change_idx;
+
+		while (new_size < fd)
+			new_size *= 2;
+
+		new_change_idx = realloc(
+			kqop->change_idx, new_size*sizeof(struct kqidx));
+		if (!new_change_idx)
+			return NULL;
+		for (i = kqop->change_idx_size; i < new_size; ++i) {
+			new_change_idx[i].read_idx = -1;
+			new_change_idx[i].write_idx = -1;
+		}
+		kqop->change_idx = new_change_idx;
+		kqop->change_idx_size = new_size;
+	}
+	changes_ok(kqop);
+	return &kqop->change_idx[fd];
+}
 
 static int
 kq_add(void *arg, struct event *ev)
 {
 	struct kqop *kqop = arg;
-	struct kevent kev;
+	struct kevent kev, *kev_old;
+	struct kqidx *kqidx;
 
+	changes_ok(kqop);
 	if (ev->ev_events & EV_SIGNAL) {
 		int nsignal = EVENT_SIGNAL(ev);
 
@@ -336,7 +432,30 @@ kq_add(void *arg, struct event *ev)
 		return (0);
 	}
 
+	if (ev->ev_fd < 0)
+		return (-1);
+
+	kqidx = kqidx_get_for_fd(kqop, ev->ev_fd);
+
 	if (ev->ev_events & EV_READ) {
+
+		if (kqidx->read_idx >= 0) {
+			kev_old = &kqop->changes[kqidx->read_idx];
+			assert(kev_old->ident == ev->ev_fd);
+			assert(kev_old->filter == EVFILT_READ);
+
+			if (kev_old->flags & EV_DELETE) {
+#ifdef NOTE_EOF
+				/* Make it behave like select() and poll() */
+				kev_old->fflags = NOTE_EOF;
+#endif
+				kev_old->flags = EV_ADD;
+				kev_old->udata = PTR_TO_UDATA(ev);
+				if (!(ev->ev_events & EV_PERSIST))
+					kev_old->flags |= EV_ONESHOT;
+			}
+		} else {
+
  		memset(&kev, 0, sizeof(kev));
 		kev.ident = ev->ev_fd;
 		kev.filter = EVFILT_READ;
@@ -351,11 +470,26 @@ kq_add(void *arg, struct event *ev)
 		
 		if (kq_insert(kqop, &kev) == -1)
 			return (-1);
-
+		kqidx->read_idx = kqop->nchanges - 1;
+		}
 		ev->ev_flags |= EVLIST_X_KQINKERNEL;
 	}
+	changes_ok(kqop);
 
 	if (ev->ev_events & EV_WRITE) {
+		if (kqidx->write_idx >= 0) {
+			kev_old = &kqop->changes[kqidx->write_idx];
+			assert(kev_old->ident == ev->ev_fd);
+			assert(kev_old->filter == EVFILT_WRITE);
+
+			if (kev_old->flags & EV_DELETE) {
+				kev_old->flags = EV_ADD;
+				kev_old->udata = PTR_TO_UDATA(ev);
+				if (!(ev->ev_events & EV_PERSIST))
+					kev_old->flags |= EV_ONESHOT;
+			}
+		} else {
+
  		memset(&kev, 0, sizeof(kev));
 		kev.ident = ev->ev_fd;
 		kev.filter = EVFILT_WRITE;
@@ -366,10 +500,11 @@ kq_add(void *arg, struct event *ev)
 		
 		if (kq_insert(kqop, &kev) == -1)
 			return (-1);
-
+		kqidx->write_idx = kqop->nchanges - 1;
+		}
 		ev->ev_flags |= EVLIST_X_KQINKERNEL;
 	}
-
+	changes_ok(kqop);
 	return (0);
 }
 
@@ -377,8 +512,10 @@ static int
 kq_del(void *arg, struct event *ev)
 {
 	struct kqop *kqop = arg;
-	struct kevent kev;
+	struct kevent kev, *kev_old;
+	struct kqidx *kqidx;
 
+	changes_ok(kqop);
 	if (!(ev->ev_flags & EVLIST_X_KQINKERNEL))
 		return (0);
 
@@ -409,7 +546,21 @@ kq_del(void *arg, struct event *ev)
 		return (0);
 	}
 
+	if (ev->ev_fd < 0)
+		return -1;
+
+	kqidx = kqidx_get_for_fd(kqop, ev->ev_fd);
+
 	if (ev->ev_events & EV_READ) {
+		if (kqidx->read_idx >= 0) {
+			kev_old = &kqop->changes[kqidx->read_idx];
+			assert(kev_old->ident == ev->ev_fd);
+			assert(kev_old->filter == EVFILT_READ);
+			if (kev_old->flags & EV_ADD) {
+				kev_old->flags = EV_DELETE;
+			}
+		} else {
+
  		memset(&kev, 0, sizeof(kev));
 		kev.ident = ev->ev_fd;
 		kev.filter = EVFILT_READ;
@@ -417,11 +568,23 @@ kq_del(void *arg, struct event *ev)
 		
 		if (kq_insert(kqop, &kev) == -1)
 			return (-1);
-
+		kqidx->read_idx = kqop->nchanges - 1;
+		}
 		ev->ev_flags &= ~EVLIST_X_KQINKERNEL;
 	}
 
+	changes_ok(kqop);
+
 	if (ev->ev_events & EV_WRITE) {
+		if (kqidx->write_idx >= 0) {
+			kev_old = &kqop->changes[kqidx->write_idx];
+			assert(kev_old->ident == ev->ev_fd);
+			assert(kev_old->filter == EVFILT_WRITE);
+
+			if (kev_old->flags & EV_ADD) {
+				kev_old->flags = EV_DELETE;
+			}
+		} else {
  		memset(&kev, 0, sizeof(kev));
 		kev.ident = ev->ev_fd;
 		kev.filter = EVFILT_WRITE;
@@ -429,10 +592,12 @@ kq_del(void *arg, struct event *ev)
 		
 		if (kq_insert(kqop, &kev) == -1)
 			return (-1);
-
+		kqidx->write_idx = kqop->nchanges - 1;
+		}
 		ev->ev_flags &= ~EVLIST_X_KQINKERNEL;
 	}
 
+	changes_ok(kqop);
 	return (0);
 }
 
