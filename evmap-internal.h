@@ -39,8 +39,8 @@ struct event;
 
 /** Initialize an event_map for use.
  */
-void evmap_io_initmap(struct event_io_map* ctx);
-void evmap_signal_initmap(struct event_signal_map* ctx);
+void evmap_io_initmap(struct event_io_map* ctx, size_t fdinfo_len);
+void evmap_signal_initmap(struct event_signal_map* ctx, size_t fdinfo_len);
 
 /** Remove all entries from an event_map.
 

@@ -537,10 +537,6 @@ event_base_new_with_config(const struct event_config *cfg)
 	if (cfg)
 		base->flags = cfg->flags;
 
-	evmap_io_initmap(&base->io);
-	evmap_signal_initmap(&base->sigmap);
-	event_changelist_init(&base->changelist);
-
 	base->evbase = NULL;
 
 	should_check_environment =
@@ -576,6 +572,10 @@ event_base_new_with_config(const struct event_config *cfg)
 
 	if (evutil_getenv("EVENT_SHOW_METHOD"))
 		event_msgx("libevent using: %s", base->evsel->name);
+
+	evmap_io_initmap(&base->io, base->evsel->fdinfo_len);
+	evmap_signal_initmap(&base->sigmap, base->evsigsel->fdinfo_len);
+	event_changelist_init(&base->changelist);
 
 	/* allocate a single active event queue */
 	if (event_base_priority_init(base, 1) < 0) {

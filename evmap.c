@@ -51,6 +51,12 @@
 #include "mm-internal.h"
 #include "changelist-internal.h"
 
+struct pointeraligntest {
+	char ch;
+	void *ptr;
+};
+#define PTR_ALIGN (evutil_offsetof(struct pointeraligntest, ptr))
+
 /** An entry for an evmap_io list: notes all the events that want to read or
 	write on a given fd, and the number of each.
   */
@@ -100,85 +106,84 @@ eqsocket(struct event_map_entry *e1, struct event_map_entry *e2)
 	return e1->fd == e2->fd;
 }
 
-HT_PROTOTYPE(event_io_map, event_map_entry, map_node, hashsocket, eqsocket);
-HT_GENERATE(event_io_map, event_map_entry, map_node, hashsocket, eqsocket,
+HT_PROTOTYPE(event_io_MAP, event_map_entry, map_node, hashsocket, eqsocket);
+HT_GENERATE(event_io_MAP, event_map_entry, map_node, hashsocket, eqsocket,
 			0.5, mm_malloc, mm_realloc, mm_free);
 
-#define GET_IO_SLOT(x, map, slot, type)					\
+#define GET_IO_SLOT(x, ctx, slot, type)					\
 	do {								\
 		struct event_map_entry _key, *_ent;			\
 		_key.fd = slot;						\
-		_ent = HT_FIND(event_io_map, map, &_key);		\
+		_ent = HT_FIND(event_io_MAP, &(ctx)->map, &_key);	\
 		(x) = _ent ? &_ent->ent.type : NULL;			\
 	} while (0);
 
-#define GET_IO_SLOT_AND_CTOR(x, map, slot, type, ctor, fdinfo_len)	\
+#define GET_IO_SLOT_AND_CTOR(x, ctx, slot, type, ctor)			\
 	do {								\
 		struct event_map_entry _key, *_ent;			\
 		_key.fd = slot;						\
-		_HT_FIND_OR_INSERT(event_io_map, map_node, hashsocket, map, \
+		_HT_FIND_OR_INSERT(event_io_MAP, map_node, hashsocket,	\
+		    &(ctx)->map,					\
 		    event_map_entry, &_key, ptr,			\
 		    {							\
 			    _ent = *ptr;				\
 		    },							\
 		    {							\
-			    _ent = mm_calloc(1,sizeof(struct event_map_entry)+fdinfo_len); \
-			    EVUTIL_ASSERT(_ent);				\
+			    _ent = mm_calloc(1,(ctx)->entry_size);	\
+			    EVUTIL_ASSERT(_ent);			\
 			    _ent->fd = slot;				\
 			    (ctor)(&_ent->ent.type);			\
-			    _HT_FOI_INSERT(map_node, map, &_key, _ent, ptr) \
-				});					\
+			    _HT_FOI_INSERT(map_node, &(ctx)->map, &_key, _ent, ptr); \
+		});							\
 		(x) = &_ent->ent.type;					\
 	} while (0)
 
-void evmap_io_initmap(struct event_io_map *ctx)
+void evmap_io_initmap(struct event_io_map *ctx, size_t fdinfo_len)
 {
-	HT_INIT(event_io_map, ctx);
+	HT_INIT(event_io_MAP, &ctx->map);
+	ctx->entry_size = sizeof(struct event_map_entry)+fdinfo_len;
+	ctx->entry_size += PTR_ALIGN - 1 ;
+	ctx->entry_size &= ~(PTR_ALIGN - 1);
 }
 
 void evmap_io_clear(struct event_io_map *ctx)
 {
 	struct event_map_entry **ent, **next, *this;
-	for (ent = HT_START(event_io_map, ctx); ent; ent = next) {
+	for (ent = HT_START(event_io_MAP, &ctx->map); ent; ent = next) {
 		this = *ent;
-		next = HT_NEXT_RMV(event_io_map, ctx, ent);
+		next = HT_NEXT_RMV(event_io_MAP, &ctx->map, ent);
 		mm_free(this);
 	}
 }
 #endif
 
 /* Set the variable 'x' to the field in event_map 'map' with fields of type
-   'struct type *' corresponding to the fd or signal 'slot'.  Set 'x' to NULL
-   if there are no entries for 'slot'.  Does no bounds-checking. */
-#define GET_SIGNAL_SLOT(x, map, slot, type)			\
-	(x) = (struct type *)((map)->entries[slot])
-/* As GET_SLOT, but construct the entry for 'slot' if it is not present,
-   by allocating enough memory for a 'struct type', and initializing the new
-   value by calling the function 'ctor' on it.
+   'struct type *' corresponding to the fd or signal 'slot'.  May return NULL
+   if the slot isn't set.  Does no bounds-checking. */
+#define GET_SIGNAL_SLOT(x, map, slot, type)				\
+	(x) = (struct type*)(						\
+		&(map)->entries[(slot) * ((map)->entry_size)] )
+
+/* As GET_SLOT, but make sure that an entry is constructed for 'slot' if it
+ * isn't present by allocating enough memory and calling 'ctor' on it.
  */
-#define GET_SIGNAL_SLOT_AND_CTOR(x, map, slot, type, ctor, fdinfo_len)	\
-	do {								\
-		if ((map)->entries[slot] == NULL) {			\
-			EVUTIL_ASSERT(ctor != NULL);				\
-			(map)->entries[slot] =				\
-			    mm_calloc(1,sizeof(struct type)+fdinfo_len); \
-			EVUTIL_ASSERT((map)->entries[slot] != NULL);		\
-			(ctor)((struct type *)(map)->entries[slot]);	\
-		}							\
-		(x) = (struct type *)((map)->entries[slot]);		\
-	} while (0)
+#define GET_SIGNAL_SLOT_AND_CTOR(x, map, slot, type, ctor)		\
+	GET_SIGNAL_SLOT((x), (map), (slot), type)
 
 /* If we aren't using hashtables, then define the IO_SLOT macros and functions
    as thin aliases over the SIGNAL_SLOT versions. */
 #ifndef EVMAP_USE_HT
-#define GET_IO_SLOT(x,map,slot,type) GET_SIGNAL_SLOT(x,map,slot,type)
-#define GET_IO_SLOT_AND_CTOR(x,map,slot,type,ctor,fdinfo_len)	\
-	GET_SIGNAL_SLOT_AND_CTOR(x,map,slot,type,ctor,fdinfo_len)
-#define FDINFO_OFFSET sizeof(struct evmap_io)
+#define GET_IO_SLOT(x,map,slot,type) \
+	GET_SIGNAL_SLOT(x,map,slot,type)
+#define GET_IO_SLOT_AND_CTOR(x,map,slot,type,ctor)	\
+	GET_SIGNAL_SLOT_AND_CTOR(x,map,slot,type,ctor)
 void
-evmap_io_initmap(struct event_io_map* ctx)
+evmap_io_initmap(struct event_io_map* ctx, size_t fdinfo_len)
 {
-	evmap_signal_initmap(ctx);
+	evmap_signal_initmap(ctx, 0);
+	ctx->entry_size = sizeof(struct evmap_io)+fdinfo_len;
+	ctx->entry_size += PTR_ALIGN - 1 ;
+	ctx->entry_size &= ~(PTR_ALIGN - 1);
 }
 void
 evmap_io_clear(struct event_io_map* ctx)
@@ -187,26 +192,51 @@ evmap_io_clear(struct event_io_map* ctx)
 }
 #endif
 
-
 /** Expand 'map' with new entries of width 'msize' until it is big enough
 	to store a value in 'slot'.
  */
 static int
-evmap_make_space(struct event_signal_map *map, int slot, int msize)
+evmap_make_space(struct event_signal_map *map, int slot, off_t list_ent_offset)
 {
 	if (map->nentries <= slot) {
+		size_t msize = map->entry_size;
 		int nentries = map->nentries ? map->nentries : 32;
-		void **tmp;
+		char *tmp;
+		int i;
 
 		while (nentries <= slot)
 			nentries <<= 1;
 
-		tmp = (void **)mm_realloc(map->entries, nentries * msize);
+		tmp = mm_realloc(map->entries, nentries * msize);
 		if (tmp == NULL)
 			return (-1);
 
-		memset(&tmp[map->nentries], 0,
+		memset(tmp+(map->nentries*msize), 0,
 		    (nentries - map->nentries) * msize);
+
+		/* If we actually moved map->entries, we need to fix up the
+		 * event_lists in it so that the first item in the list (or
+		 * the tqh_last pointer if the list is empty) points to the
+		 * new location of the tqh_first pointer. */
+		if (tmp != map->entries) {
+			for (i = 0; i < map->nentries; ++i) {
+				struct event_list *el;
+				el = (struct event_list *) &tmp[i * msize];
+				if (el->tqh_first == NULL) {
+					el->tqh_last = &el->tqh_first;
+				} else {
+					struct event *ev = el->tqh_first;
+					TAILQ_ENTRY(event) *ent = (void*)
+					    (((char*)ev)+list_ent_offset);
+					ent->tqe_prev = &el->tqh_first;
+				}
+			}
+		}
+		for (i = map->nentries; i < nentries; ++i) {
+			struct event_list *el;
+			el = (struct event_list *) &tmp[i * msize];
+			TAILQ_INIT(el);
+		}
 
 		map->nentries = nentries;
 		map->entries = tmp;
@@ -216,21 +246,19 @@ evmap_make_space(struct event_signal_map *map, int slot, int msize)
 }
 
 void
-evmap_signal_initmap(struct event_signal_map *ctx)
+evmap_signal_initmap(struct event_signal_map *ctx, size_t fdinfo_len)
 {
 	ctx->nentries = 0;
 	ctx->entries = NULL;
+	ctx->entry_size = sizeof(struct evmap_signal)+fdinfo_len;
+	ctx->entry_size += PTR_ALIGN - 1 ;
+	ctx->entry_size &= ~(PTR_ALIGN - 1);
 }
 
 void
 evmap_signal_clear(struct event_signal_map *ctx)
 {
 	if (ctx->entries != NULL) {
-		int i;
-		for (i = 0; i < ctx->nentries; ++i) {
-			if (ctx->entries[i] != NULL)
-				mm_free(ctx->entries[i]);
-		}
 		mm_free(ctx->entries);
 		ctx->entries = NULL;
 	}
@@ -240,6 +268,7 @@ evmap_signal_clear(struct event_signal_map *ctx)
 
 /* code specific to file descriptors */
 
+#ifdef EVMAP_USE_HT
 /** Constructor for struct evmap_io */
 static void
 evmap_io_init(struct evmap_io *entry)
@@ -248,7 +277,7 @@ evmap_io_init(struct evmap_io *entry)
 	entry->nread = 0;
 	entry->nwrite = 0;
 }
-
+#endif
 
 /* return -1 on error, 0 on success if nothing changed in the event backend,
  * and 1 on success if something did. */
@@ -270,12 +299,11 @@ evmap_io_add(struct event_base *base, evutil_socket_t fd, struct event *ev)
 
 #ifndef EVMAP_USE_HT
 	if (fd >= io->nentries) {
-		if (evmap_make_space(io, fd, sizeof(struct evmap_io *)) == -1)
+		if (evmap_make_space(io, fd, evutil_offsetof(struct event, ev_io_next)) == -1)
 			return (-1);
 	}
 #endif
-	GET_IO_SLOT_AND_CTOR(ctx, io, fd, evmap_io, evmap_io_init,
-						 evsel->fdinfo_len);
+	GET_IO_SLOT_AND_CTOR(ctx, io, fd, evmap_io, evmap_io_init);
 
 	nread = ctx->nread;
 	nwrite = ctx->nwrite;
@@ -391,13 +419,6 @@ evmap_io_active(struct event_base *base, evutil_socket_t fd, short events)
 
 /* code specific to signals */
 
-static void
-evmap_signal_init(struct evmap_signal *entry)
-{
-	TAILQ_INIT(&entry->events);
-}
-
-
 int
 evmap_signal_add(struct event_base *base, int sig, struct event *ev)
 {
@@ -406,12 +427,10 @@ evmap_signal_add(struct event_base *base, int sig, struct event *ev)
 	struct evmap_signal *ctx = NULL;
 
 	if (sig >= map->nentries) {
-		if (evmap_make_space(
-			map, sig, sizeof(struct evmap_signal *)) == -1)
+		if (evmap_make_space(map, sig, evutil_offsetof(struct event, ev_signal_next)) == -1)
 			return (-1);
 	}
-	GET_SIGNAL_SLOT_AND_CTOR(ctx, map, sig, evmap_signal, evmap_signal_init,
-	    base->evsigsel->fdinfo_len);
+	GET_SIGNAL_SLOT_AND_CTOR(ctx, map, sig, evmap_signal, evmap_signal_init);
 
 	if (TAILQ_EMPTY(&ctx->events)) {
 		if (evsel->add(base, ev->ev_fd, 0, EV_SIGNAL, NULL)

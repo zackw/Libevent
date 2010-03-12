@@ -111,7 +111,10 @@ struct eventop {
 #ifdef EVMAP_USE_HT
 #include "ht-internal.h"
 struct event_map_entry;
-HT_HEAD(event_io_map, event_map_entry);
+struct event_io_map {
+	HT_HEAD(event_io_MAP, event_map_entry) map;
+	size_t entry_size;
+};
 #else
 #define event_io_map event_signal_map
 #endif
@@ -121,11 +124,13 @@ HT_HEAD(event_io_map, event_map_entry);
    list of events.
 */
 struct event_signal_map {
-	/* An array of evmap_io * or of evmap_signal *; empty entries are
-	 * set to NULL. */
-	void **entries;
+	/* An array of evmap_io (with fdinfo added) or of evmap_signal (with
+	 * siginfo aded); empty entries are set to 0. */
+	char *entries;
 	/* The number of entries available in entries */
 	int nentries;
+	/* The amount of space to allocate for each entry in the array. */
+	size_t entry_size;
 };
 
 /* A list of events waiting on a given 'common' timeout value.  Ordinarily,
