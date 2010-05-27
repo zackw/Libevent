@@ -1857,6 +1857,8 @@ _evbuffer_read_setup_vecs(struct evbuffer *buf, ev_ssize_t howmuch,
 }
 
 #ifdef USE_IOVEC_IMPL
+/* Helper: return the amount of usable space in the first 'nvecs' writable
+ * chains at the end of 'buf'. */
 static size_t
 evbuffer_get_available_space(struct evbuffer *buf, int nvecs)
 {
@@ -1868,6 +1870,7 @@ evbuffer_get_available_space(struct evbuffer *buf, int nvecs)
 	while (chain && nvecs) {
 		space += CHAIN_SPACE_LEN(chain);
 		nvecs--;
+		chain = chain->next;
 	}
 	return space;
 }
