@@ -1878,12 +1878,13 @@ evbuffer_get_available_space(struct evbuffer *buf, int nvecs)
 int
 evbuffer_read(struct evbuffer *buf, evutil_socket_t fd, int howmuch)
 {
-	struct evbuffer_chain *chain, **chainp;
+	struct evbuffer_chain *chain;
 	int n = EVBUFFER_MAX_READ;
 	int result;
 	size_t free_space;
 
 #ifdef USE_IOVEC_IMPL
+	struct evbuffer_chain **chainp;
 	int nvecs, i, remaining;
 #else
 	unsigned char *p;
