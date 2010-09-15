@@ -166,7 +166,7 @@ evsig_cb(evutil_socket_t fd, short what, void *arg)
 }
 
 int
-evsig_init(struct event_base *base)
+evsig_dflt_init(struct event_base *base)
 {
 #ifndef _EVENT_DISABLE_THREAD_SUPPORT
 	if (! evsig_base_lock)
@@ -399,7 +399,7 @@ evsig_handler(int sig)
 }
 
 void
-evsig_dealloc(struct event_base *base)
+evsig_dflt_dealloc(struct event_base *base)
 {
 	int i = 0;
 	if (base->sig.ev_signal_added) {

@@ -38,6 +38,9 @@ extern "C" {
 #include "evsignal-internal.h"
 #include "mm-internal.h"
 #include "defer-internal.h"
+#ifdef _EVENT_HAVE_SIGNALFD
+#include "evsignalfd-internal.h"
+#endif
 
 /* map union members back */
 
@@ -181,6 +184,10 @@ struct event_base {
 	void *evsigbase;
 	/** Data to implement the common signal handelr code. */
 	struct evsig_info sig;
+#ifdef _EVENT_HAVE_SIGNALFD
+	/*XXXX Turn this into a union with evsiginfo */
+	struct evsigfd_info evsigfd;
+#endif
 
 	/** Number of virtual events */
 	int virtual_event_count;

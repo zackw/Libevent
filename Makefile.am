@@ -138,6 +138,9 @@ if SIGNAL_SUPPORT
 SYS_SRC += signal.c
 endif
 
+# XXXX make conditional.
+SYS_SRC += signalfd.c
+
 BUILT_SOURCES = ./include/event2/event-config.h
 
 ./include/event2/event-config.h: config.h
@@ -203,7 +206,7 @@ noinst_HEADERS = util-internal.h mm-internal.h ipv6-internal.h \
 	bufferevent-internal.h http-internal.h event-internal.h \
 	evthread-internal.h ht-internal.h defer-internal.h \
 	minheap-internal.h log-internal.h evsignal-internal.h evmap-internal.h \
-	changelist-internal.h iocp-internal.h \
+	changelist-internal.h iocp-internal.h evsignalfd-internal.h \
 	ratelim-internal.h \
 	WIN32-Code/event2/event-config.h \
 	WIN32-Code/tree.h \

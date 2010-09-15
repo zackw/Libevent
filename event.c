@@ -68,6 +68,10 @@
 #include "changelist-internal.h"
 #include "ht-internal.h"
 #include "util-internal.h"
+#include "evsignal-internal.h"
+#ifdef _EVENT_HAVE_SIGNALFD
+#include "evsignalfd-internal.h"
+#endif
 
 #ifdef _EVENT_HAVE_EVENT_PORTS
 extern const struct eventop evportops;
@@ -89,6 +93,9 @@ extern const struct eventop devpollops;
 #endif
 #ifdef WIN32
 extern const struct eventop win32ops;
+#endif
+#ifdef _EVENT_HAVE_SIGNALFD
+extern const struct eventop evsigfdops;
 #endif
 
 /* Array of backends in order of preference. */
@@ -2773,3 +2780,27 @@ event_base_del_virtual(struct event_base *base)
 		evthread_notify_base(base);
 	EVBASE_RELEASE_LOCK(base, th_base_lock);
 }
+
+int
+evsig_init(struct event_base *base)
+{
+#ifdef _EVENT_HAVE_SIGNALFD
+	if (evsigfd_init(base) == 0)
+		return 0;
+#endif
+	puts("No evsigfd_init");
+	return evsig_dflt_init(base);
+}
+
+void
+evsig_dealloc(struct event_base *base)
+{
+#ifdef _EVENT_HAVE_SIGNALFD
+	if (base->evsigsel == &evsigfdops) {
+		evsigfd_dealloc(base);
+		return;
+	}
+#endif
+	evsig_dflt_dealloc(base);
+}
+
