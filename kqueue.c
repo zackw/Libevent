@@ -245,6 +245,39 @@ kq_grow_events(struct kqop *kqop, size_t new_size)
 	}
 }
 
+/* Alternate implementation of kevent() to use in error cases where the kernel
+   returns -1 despite having enough room to report errors. As of May 2011,
+   most implementations do this when trying to add a pipe the other end of
+   which has losed.
+ */
+static int
+kevent_fallback(int kq,
+    const struct kevent *changelist, int nchanges,
+    struct kevent *eventlist, int nevents,
+    const struct timespec *timeout)
+{
+	int i, res, n_errs=0;
+	if (nevents < nchanges)
+		return -1;
+
+	for (i = 0; i < nchanges; ++i) {
+		res = kevent(kq, &changelist[i], 1, NULL, 0, NULL);
+		if (res < 0) {
+			memcpy(&eventlist[n_errs], &changelist[i], sizeof(struct kevent));
+			eventlist[n_errs].flags |= EV_ERROR;
+			eventlist[n_errs].data = errno;
+			++n_errs;
+		}
+	}
+
+	res = kevent(kq, NULL, 0, eventlist + n_errs, nevents - n_errs,
+	    timeout);
+	if (res < 0) {
+		return res;
+	}
+	return res + n_errs;
+}
+
 static int
 kq_dispatch(struct event_base *base, struct timeval *tv)
 {
@@ -295,6 +328,13 @@ kq_dispatch(struct event_base *base, struct timeval *tv)
 
 	res = kevent(kqop->kq, changes, n_changes,
 	    events, kqop->events_size, ts_p);
+	if (res < 0 && (errno == EPIPE || errno == EBADF || errno == EPERM)) {
+		/* The BSDs and OSX sometimes give an error like this when
+		 * you're trying to end one end of a closed pipe.  That's a
+		 * bug, but we ought to work around it anyway. */
+		res = kevent_fallback(kqop->kq, changes, n_changes,
+		    events, kqop->events_size, ts_p);
+	}
 
 	EVBASE_ACQUIRE_LOCK(base, th_base_lock);
 
