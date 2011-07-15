@@ -130,7 +130,6 @@ static int use_monotonic;
 static inline int event_add_internal(struct event *ev,
     const struct timeval *tv, int tv_is_absolute);
 static inline int event_del_internal(struct event *ev);
-
 static void	event_queue_insert(struct event_base *, struct event *, int);
 static void	event_queue_remove(struct event_base *, struct event *, int);
 static int	event_haveevents(struct event_base *);
@@ -754,6 +753,12 @@ event_base_free(struct event_base *base)
 	if (n_deleted)
 		event_debug(("%s: %d events were still set in base",
 			__func__, n_deleted));
+
+	while (LIST_FIRST(&base->once_events)) {
+		struct event_once *eonce = LIST_FIRST(&base->once_events);
+		LIST_REMOVE(eonce, next_once);
+		mm_free(eonce);
+	}
 
 	if (base->evsel != NULL && base->evsel->dealloc != NULL)
 		base->evsel->dealloc(base);
@@ -1594,22 +1599,18 @@ done:
 	return (retval);
 }
 
-/* Sets up an event for processing once */
-struct event_once {
-	struct event ev;
-
-	void (*cb)(evutil_socket_t, short, void *);
-	void *arg;
-};
-
 /* One-time callback to implement event_base_once: invokes the user callback,
  * then deletes the allocated storage */
 static void
 event_once_cb(evutil_socket_t fd, short events, void *arg)
 {
 	struct event_once *eonce = arg;
+	struct event_base *base = eonce->ev.ev_base;
 
 	(*eonce->cb)(fd, events, eonce->arg);
+	EVBASE_ACQUIRE_LOCK(base, th_base_lock);
+	LIST_REMOVE(eonce, next_once);
+	EVBASE_RELEASE_LOCK(base, th_base_lock);
 	event_debug_unassign(&eonce->ev);
 	mm_free(eonce);
 }
@@ -1661,11 +1662,17 @@ event_base_once(struct event_base *base, evutil_socket_t fd, short events,
 		return (-1);
 	}
 
-	if (res == 0)
-		res = event_add(&eonce->ev, tv);
-	if (res != 0) {
-		mm_free(eonce);
-		return (res);
+	if (res == 0) {
+		EVBASE_ACQUIRE_LOCK(base, th_base_lock);
+		res = event_add_internal(&eonce->ev, tv, 0);
+
+		if (res != 0) {
+			mm_free(eonce);
+			return (res);
+		} else {
+			LIST_INSERT_HEAD(&base->once_events, eonce, next_once);
+		}
+		EVBASE_RELEASE_LOCK(base, th_base_lock);
 	}
 
 	return (0);

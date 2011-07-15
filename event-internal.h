@@ -166,6 +166,15 @@ extern int _event_debug_mode_on;
 #define EVENT_DEBUG_MODE_IS_ON() (0)
 #endif
 
+/* Sets up an event for processing once */
+struct event_once {
+	LIST_ENTRY(event_once) next_once;
+	struct event ev;
+
+	void (*cb)(evutil_socket_t, short, void *);
+	void *arg;
+};
+
 struct event_base {
 	/** Function pointers and other data to describe this event_base's
 	 * backend. */
@@ -285,6 +294,8 @@ struct event_base {
 	struct event th_notify;
 	/** A function used to wake up the main thread from another thread. */
 	int (*th_notify_fn)(struct event_base *base);
+
+	LIST_HEAD(once_event_list, event_once) once_events;
 };
 
 struct event_config_entry {
