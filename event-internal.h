@@ -277,6 +277,12 @@ struct event_base {
 	/** True if the base already has a pending notify, and we don't need
 	 * to add any more. */
 	int is_notify_pending;
+
+	/** Flag: if we are using a backend with a persistent timer, this is
+	 * set to 1 whenever the next-to-fire timeout has changed and cleared
+	 * when we update the persistent timer. */
+	int next_timeout_has_changed;
+
 	/** A socketpair used by some th_notify functions to wake up the main
 	 * thread. */
 	evutil_socket_t th_notify_fd[2];

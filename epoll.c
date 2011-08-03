@@ -523,7 +523,8 @@ epoll_dispatch(struct event_base *base, struct timeval *tv)
 			 * too big; see comment on MAX_EPOLL_TIMEOUT_MSEC. */
 				timeout = MAX_EPOLL_TIMEOUT_MSEC;
 			}
-		} else if (tv->tv_usec | tv->tv_sec) {
+		} else if ((tv->tv_usec | tv->tv_sec) &&
+		    base->next_timeout_has_changed) {
 			struct itimerspec val, old_val;
 			val.it_interval.tv_sec = 0;
 			val.it_interval.tv_nsec = 0;
@@ -532,6 +533,7 @@ epoll_dispatch(struct event_base *base, struct timeval *tv)
 			if (timerfd_settime(epollop->timerfd, 0, &val, &old_val)<0)
 				event_warn("timerfd_settime(ON");
 			epollop->timerfd_armed = 1;
+			base->next_timeout_has_changed = 0;
 		} else {
 			timeout = 0;
 		}
@@ -545,6 +547,7 @@ epoll_dispatch(struct event_base *base, struct timeval *tv)
 			if (timerfd_settime(epollop->timerfd, 0, &val, &old_val)<0)
 				event_warn("timerfd_settime(OFF");
 			epollop->timerfd_armed = 0;
+			base->next_timeout_has_changed = 0;
 		}
 	}
 

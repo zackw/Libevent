@@ -2053,9 +2053,11 @@ event_add_internal(struct event *ev, const struct timeval *tv,
 		 * are not replacing an existing timeout.
 		 */
 		if (ev->ev_flags & EVLIST_TIMEOUT) {
-			/* XXX I believe this is needless. */
-			if (min_heap_elt_is_top(ev))
+			if (min_heap_elt_is_top(ev)) {
+				/* XXX I believe this is needless. */
 				notify = 1;
+				base->next_timeout_has_changed = 1;
+			}
 			event_queue_remove(base, ev, EVLIST_TIMEOUT);
 		}
 
@@ -2108,8 +2110,10 @@ event_add_internal(struct event *ev, const struct timeval *tv,
 			 * was before: if so, we will need to tell the main
 			 * thread to wake up earlier than it would
 			 * otherwise. */
-			if (min_heap_elt_is_top(ev))
+			if (min_heap_elt_is_top(ev)) {
 				notify = 1;
+				base->next_timeout_has_changed = 1;
+			}
 		}
 	}
 
@@ -2181,6 +2185,9 @@ event_del_internal(struct event *ev)
 	}
 
 	if (ev->ev_flags & EVLIST_TIMEOUT) {
+		if (min_heap_elt_is_top(ev))
+			base->next_timeout_has_changed = 1;
+
 		/* NOTE: We never need to notify the main thread because of a
 		 * deleted timeout event: all that could happen if we don't is
 		 * that the dispatch loop might wake up too early.  But the
