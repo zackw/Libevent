@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/resource.h>
+#include <sys/timerfd.h>
 #ifdef _EVENT_HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -58,6 +59,8 @@ struct epollop {
 	struct epoll_event *events;
 	int nevents;
 	int epfd;
+	int timerfd;
+	int timerfd_armed;
 };
 
 static void *epoll_init(struct event_base *);
@@ -138,6 +141,20 @@ epoll_init(struct event_base *base)
 	    ((base->flags & EVENT_BASE_FLAG_IGNORE_ENV) == 0 &&
 		evutil_getenv("EVENT_EPOLL_USE_CHANGELIST") != NULL))
 		base->evsel = &epollops_changelist;
+
+	epollop->timerfd = timerfd_create(CLOCK_MONOTONIC,
+	    TFD_NONBLOCK|TFD_CLOEXEC);
+	if (epollop->timerfd >= 0) {
+		struct epoll_event epev;
+		memset(&epev, 0, sizeof(epev));
+		epev.data.fd = epollop->timerfd;
+		epev.events = EPOLLIN;
+		if (epoll_ctl(epollop->epfd, EPOLL_CTL_ADD, epollop->timerfd,
+			&epev) < 0)
+			event_warn("epoll_ctl(ADD timerfd)");
+	} else {
+		event_warn("timerfd_create");
+	}
 
 	evsig_init(base);
 
@@ -499,11 +516,35 @@ epoll_dispatch(struct event_base *base, struct timeval *tv)
 	long timeout = -1;
 
 	if (tv != NULL) {
-		timeout = evutil_tv_to_msec(tv);
-		if (timeout < 0 || timeout > MAX_EPOLL_TIMEOUT_MSEC) {
+		if (epollop->timerfd < 0) {
+			timeout = evutil_tv_to_msec(tv);
+			if (timeout < 0 || timeout > MAX_EPOLL_TIMEOUT_MSEC) {
 			/* Linux kernels can wait forever if the timeout is
 			 * too big; see comment on MAX_EPOLL_TIMEOUT_MSEC. */
-			timeout = MAX_EPOLL_TIMEOUT_MSEC;
+				timeout = MAX_EPOLL_TIMEOUT_MSEC;
+			}
+		} else if (tv->tv_usec | tv->tv_sec) {
+			struct itimerspec val, old_val;
+			val.it_interval.tv_sec = 0;
+			val.it_interval.tv_nsec = 0;
+			val.it_value.tv_sec = tv->tv_sec;
+			val.it_value.tv_nsec = tv->tv_usec * 1000;
+			if (timerfd_settime(epollop->timerfd, 0, &val, &old_val)<0)
+				event_warn("timerfd_settime(ON");
+			epollop->timerfd_armed = 1;
+		} else {
+			timeout = 0;
+		}
+	} else {
+		if (epollop->timerfd_armed) {
+			struct itimerspec val, old_val;
+			val.it_interval.tv_sec = 0;
+			val.it_interval.tv_nsec = 0;
+			val.it_value.tv_sec = 0;
+			val.it_value.tv_nsec = 0;
+			if (timerfd_settime(epollop->timerfd, 0, &val, &old_val)<0)
+				event_warn("timerfd_settime(OFF");
+			epollop->timerfd_armed = 0;
 		}
 	}
 
@@ -531,6 +572,9 @@ epoll_dispatch(struct event_base *base, struct timeval *tv)
 	for (i = 0; i < res; i++) {
 		int what = events[i].events;
 		short ev = 0;
+
+		if (events[i].data.fd == epollop->timerfd)
+			continue;
 
 		if (what & (EPOLLHUP|EPOLLERR)) {
 			ev = EV_READ | EV_WRITE;
