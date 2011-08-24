@@ -218,7 +218,7 @@ bev_async_consider_writing(struct bufferevent_async *beva)
 		_bufferevent_run_eventcb(bev, BEV_EVENT_ERROR);
 	} else {
 		beva->write_in_progress = at_most;
-		_bufferevent_decrement_write_buckets(&bev_a->bev, at_most);
+		_bufferevent_decrement_write_buckets(&beva->bev, at_most);
 		bev_async_add_write(beva);
 	}
 }
@@ -272,7 +272,7 @@ bev_async_consider_reading(struct bufferevent_async *beva)
 		_bufferevent_run_eventcb(bev, BEV_EVENT_ERROR);
 	} else {
 		beva->read_in_progress = at_most;
-		_bufferevent_decrement_read_buckets(&bev_a->bev, at_most);
+		_bufferevent_decrement_read_buckets(&beva->bev, at_most);
 		bev_async_add_read(beva);
 	}
 
