@@ -590,10 +590,14 @@ evbuffer_get_contiguous_space(const struct evbuffer *buf)
 }
 
 size_t
-evbuffer_add_iovec(struct evbuffer * buf, struct evbuffer_iovec * vec, int n_vec) {
+evbuffer_add_iovec(struct evbuffer * buf, struct evbuffer_iovec *vec, int n_vec) {
 	int n;
 	size_t res;
 	size_t to_alloc;
+	struct evbuffer_iovec outvec[2], *out;
+	int n_outvec;
+	size_t remaining_space;
+	char *outptr;
 
 	EVBUFFER_LOCK(buf);
 
@@ -603,26 +607,60 @@ evbuffer_add_iovec(struct evbuffer * buf, struct evbuffer_iovec * vec, int n_vec
 		to_alloc += vec[n].iov_len;
 	}
 
-	if (_evbuffer_expand_fast(buf, to_alloc, 2) < 0) {
+	n_outvec = evbuffer_reserve_space(buf, to_alloc, outvec, 2);
+	if (n_outvec < 0)
 		goto done;
-	}
 
+
+	out = &outvec[0];
+	outptr = outvec[0].iov_base;
+	remaining_space = outvec[0].iov_len;
 	for (n = 0; n < n_vec; n++) {
-		/* XXX each 'add' call here does a bunch of setup that's
-		 * obviated by _evbuffer_expand_fast, and some cleanup that we
-		 * would like to do only once.  Instead we should just extract
-		 * the part of the code that's needed. */
+		size_t veclen = vec[n].iov_len;
+		if (remaining_space >= veclen) {
+			memcpy(outptr, vec[n].iov_base, veclen);
+			remaining_space -= veclen;
+			outptr += veclen;
+			res += veclen;
+		} else {
+			char *data_ptr = vec[n].iov_base;
+			memcpy(outptr, data_ptr, remaining_space);
+			data_ptr += remaining_space;
+			veclen -= remaining_space;
+			res += remaining_space;
 
-		if (evbuffer_add(buf, vec[n].iov_base, vec[n].iov_len) < 0) {
-			goto done;
+			if (out == &outvec[1] || n_outvec == 1) {
+				/* Can't advance! */
+				remaining_space = 0;
+				goto finish;
+			}
+			out = &outvec[1];
+			outptr = outvec[1].iov_base;
+			remaining_space = outvec[1].iov_len;
+
+			if (remaining_space < veclen) {
+				/* Should be impossible. */
+				goto finish;
+			}
+
+			memcpy(outptr, data_ptr, veclen);
+			remaining_space -= veclen;
+			outptr += veclen;
+			res += veclen;
 		}
-
-		res += vec[n].iov_len;
 	}
+
+finish:
+	EVUTIL_ASSERT(out && out->iov_len >= remaining_space);
+	out->iov_len -= remaining_space; /* only commit the amount used */
+
+	n = evbuffer_commit_space(buf, outvec, n_outvec);
+	if (n < 0)
+		res = 0;
 
 done:
-    EVBUFFER_UNLOCK(buf);
-    return res;
+	EVBUFFER_UNLOCK(buf);
+	return res;
 }
 
 int
