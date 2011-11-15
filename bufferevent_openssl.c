@@ -731,6 +731,12 @@ consider_reading(struct bufferevent_openssl *bev_ssl)
 		r = do_read(bev_ssl, n_to_read);
 		if (r <= 0)
 			break;
+
+		if (! SSL_pending(bev_ssl->ssl)) {
+			/* Can't read any more without hitting the network
+			 * a second time. */
+			break;
+		}
 	}
 
 	if (!bev_ssl->underlying) {
