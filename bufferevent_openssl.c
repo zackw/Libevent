@@ -714,6 +714,7 @@ consider_reading(struct bufferevent_openssl *bev_ssl)
 	int r;
 	struct evbuffer *input = bev_ssl->bev.bev.input;
 	struct event_watermark *wm = &bev_ssl->bev.bev.wm_read;
+	int pending = INT_MAX;
 
 	while (bev_ssl->write_blocked_on_read) {
 		r = do_write(bev_ssl, WRITE_FRAME);
@@ -728,11 +729,15 @@ consider_reading(struct bufferevent_openssl *bev_ssl)
 		int n_to_read =
 		    wm->high ? wm->high - evbuffer_get_length(input)
 			     : READ_DEFAULT;
+		if (n_to_read > pending) {
+			n_to_read = pending;
+		}
 		r = do_read(bev_ssl, n_to_read);
 		if (r <= 0)
 			break;
 
-		if (! SSL_pending(bev_ssl->ssl)) {
+		pending = SSL_pending(bev_ssl->ssl);
+		if (! pending) {
 			/* Can't read any more without hitting the network
 			 * a second time. */
 			break;
