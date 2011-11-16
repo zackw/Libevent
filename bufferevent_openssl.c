@@ -558,7 +558,7 @@ decrement_buckets(struct bufferevent_openssl *bev_ssl)
 
 /* returns -1 on internal error, 0 on stall, 1 on progress */
 static int
-do_read(struct bufferevent_openssl *bev_ssl, int n_to_read)
+do_read(struct bufferevent_openssl *bev_ssl, int n_to_read, int force_amount)
 {
 	/* Requires lock */
 	struct bufferevent *bev = &bev_ssl->bev.bev;
@@ -566,9 +566,11 @@ do_read(struct bufferevent_openssl *bev_ssl, int n_to_read)
 	int r, n, i, n_used = 0, blocked = 0, atmost;
 	struct evbuffer_iovec space[2];
 
-	atmost = _bufferevent_get_read_max(&bev_ssl->bev);
-	if (n_to_read > atmost)
-		n_to_read = atmost;
+	if (! force_amount) {
+		atmost = _bufferevent_get_read_max(&bev_ssl->bev);
+		if (n_to_read > atmost)
+			n_to_read = atmost;
+	}
 
 	n = evbuffer_reserve_space(input, n_to_read, space, 2);
 	if (n < 0)
@@ -714,7 +716,6 @@ consider_reading(struct bufferevent_openssl *bev_ssl)
 	int r;
 	struct evbuffer *input = bev_ssl->bev.bev.input;
 	struct event_watermark *wm = &bev_ssl->bev.bev.wm_read;
-	int pending = INT_MAX;
 
 	while (bev_ssl->write_blocked_on_read) {
 		r = do_write(bev_ssl, WRITE_FRAME);
@@ -723,24 +724,19 @@ consider_reading(struct bufferevent_openssl *bev_ssl)
 	}
 	if (bev_ssl->write_blocked_on_read)
 		return;
-	while ((bev_ssl->bev.bev.enabled & EV_READ) &&
+	if ((bev_ssl->bev.bev.enabled & EV_READ) &&
 	    (! bev_ssl->bev.read_suspended) &&
 	    (! wm->high || evbuffer_get_length(input) < wm->high)) {
 		int n_to_read =
 		    wm->high ? wm->high - evbuffer_get_length(input)
 			     : READ_DEFAULT;
-		if (n_to_read > pending) {
-			n_to_read = pending;
-		}
-		r = do_read(bev_ssl, n_to_read);
-		if (r <= 0)
-			break;
+		r = do_read(bev_ssl, n_to_read, 0);
 
-		pending = SSL_pending(bev_ssl->ssl);
-		if (! pending) {
-			/* Can't read any more without hitting the network
-			 * a second time. */
-			break;
+		if (r >= 0) {
+			int pending = SSL_pending(bev_ssl->ssl);
+			if (pending) {
+				r = do_read(bev_ssl, pending, 1);
+			}
 		}
 	}
 
@@ -762,7 +758,7 @@ consider_writing(struct bufferevent_openssl *bev_ssl)
 	struct event_watermark *wm = NULL;
 
 	while (bev_ssl->read_blocked_on_write) {
-		r = do_read(bev_ssl, 1024); /* XXXX 1024 is a hack */
+		r = do_read(bev_ssl, 1024, 0); /* XXXX 1024 is a hack */
 		if (r <= 0)
 			break;
 	}
