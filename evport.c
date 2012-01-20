@@ -49,6 +49,7 @@
  *
  * As in the select(2) implementation, signals are handled by evsignal.
  */
+#define LIBEVENT_EXPOSE_STRUCTURES
 
 #include "event2/event-config.h"
 #include "evconfig-private.h"

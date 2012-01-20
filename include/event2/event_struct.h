@@ -54,6 +54,12 @@ extern "C" {
 /* For evkeyvalq */
 #include <event2/keyvalq_struct.h>
 
+#ifndef LIBEVENT_EXPOSE_STRUCTURES
+struct event {
+	char ev_dummy_space[_EVENT_SIZEOF_VOID_P * 18];
+};
+#else
+
 #define EVLIST_TIMEOUT	0x01
 #define EVLIST_INSERTED	0x02
 #define EVLIST_SIGNAL	0x04
@@ -151,6 +157,8 @@ struct event_dlist;
 #else
 LIST_HEAD (event_dlist, event);
 #endif /* _EVENT_DEFINED_LISTENTRY */
+
+#endif /* LIBEVENT_EXPOSE_STRUCTURES */
 
 #ifdef __cplusplus
 }

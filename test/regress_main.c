@@ -337,6 +337,7 @@ struct testcase_t thread_testcases[] = {
 
 struct testgroup_t testgroups[] = {
 	{ "main/", main_testcases },
+	{ "internals/", internals_testcases },
 	{ "heap/", minheap_testcases },
 	{ "et/", edgetriggered_testcases },
 	{ "evbuffer/", evbuffer_testcases },

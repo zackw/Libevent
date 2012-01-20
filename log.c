@@ -36,7 +36,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
+#define LIBEVENT_EXPOSE_STRUCTURES
 #include "event2/event-config.h"
 #include "evconfig-private.h"
 

@@ -31,6 +31,7 @@
  * APIs after their implementations.  We keep them in a separate file
  * so that other people can rip it out and use it for whatever.
  */
+#define LIBEVENT_EXPOSE_STRUCTURES
 
 #include "event2/event-config.h"
 #include "evconfig-private.h"

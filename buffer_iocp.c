@@ -30,6 +30,7 @@
    This module implements overlapped read and write functions for evbuffer
    objects on Windows.
 */
+#define LIBEVENT_EXPOSE_STRUCTURES
 #include "event2/event-config.h"
 #include "evconfig-private.h"
 

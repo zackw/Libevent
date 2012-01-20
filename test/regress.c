@@ -61,7 +61,6 @@
 #include "event2/buffer.h"
 #include "event2/buffer_compat.h"
 #include "event2/util.h"
-#include "event-internal.h"
 #include "evthread-internal.h"
 #include "util-internal.h"
 #include "log-internal.h"
@@ -979,28 +978,6 @@ test_signal_dealloc(void)
 	event_base_free(base);
 	/* If we got here without asserting, we're fine. */
 	test_ok = 1;
-	cleanup_test();
-}
-
-static void
-test_signal_pipeloss(void)
-{
-	/* make sure that the base1 pipe is closed correctly. */
-	struct event_base *base1, *base2;
-	int pipe1;
-	test_ok = 0;
-	base1 = event_init();
-	pipe1 = base1->sig.ev_signal_pair[0];
-	base2 = event_init();
-	event_base_free(base2);
-	event_base_free(base1);
-	if (close(pipe1) != -1 || errno!=EBADF) {
-		/* fd must be closed, so second close gives -1, EBADF */
-		printf("signal pipe not closed. ");
-		test_ok = 0;
-	} else {
-		test_ok = 1;
-	}
 	cleanup_test();
 }
 
@@ -2394,7 +2371,6 @@ struct testcase_t signal_testcases[] = {
 	LEGACY(multiplesignal, TT_ISOLATED),
 	LEGACY(immediatesignal, TT_ISOLATED),
 	LEGACY(signal_dealloc, TT_ISOLATED),
-	LEGACY(signal_pipeloss, TT_ISOLATED),
 	LEGACY(signal_switchbase, TT_ISOLATED|TT_NO_LOGS),
 	LEGACY(signal_restore, TT_ISOLATED),
 	LEGACY(signal_assert, TT_ISOLATED),

@@ -33,7 +33,7 @@
  *
  * Version: 0.1b
  */
-
+#define LIBEVENT_EXPOSE_STRUCTURES
 #include "event2/event-config.h"
 #include "evconfig-private.h"
 

@@ -54,6 +54,8 @@ extern "C" {
 /* For struct event */
 #include <event2/event_struct.h>
 
+#ifdef LIBEVENT_EXPOSE_STRUCTURES
+
 struct event_watermark {
 	size_t low;
 	size_t high;
@@ -108,6 +110,8 @@ struct bufferevent {
 	    are supported. */
 	short enabled;
 };
+
+#endif
 
 #ifdef __cplusplus
 }
