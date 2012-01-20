@@ -1768,6 +1768,7 @@ event_base_once(struct event_base *base, evutil_socket_t fd, short events,
 {
 	struct event_once *eonce;
 	int res = 0;
+	int activate = 0;
 
 	/* We cannot support signals that just fire once, or persistent
 	 * events. */
@@ -1788,8 +1789,7 @@ event_base_once(struct event_base *base, evutil_socket_t fd, short events,
 			 * don't put it on the timeout queue.  This is one
 			 * idiom for scheduling a callback, so let's make
 			 * it fast (and order-preserving). */
-			event_active(&eonce->ev, EV_TIMEOUT, 1);
-			return 0;
+			activate = 1;
 		}
 	} else if (events & (EV_READ|EV_WRITE)) {
 		events &= EV_READ|EV_WRITE;
@@ -1803,7 +1803,10 @@ event_base_once(struct event_base *base, evutil_socket_t fd, short events,
 
 	if (res == 0) {
 		EVBASE_ACQUIRE_LOCK(base, th_base_lock);
-		res = event_add_internal(&eonce->ev, tv, 0);
+		if (activate)
+			event_active_nolock(&eonce->ev, EV_TIMEOUT, 1);
+		else
+			res = event_add_internal(&eonce->ev, tv, 0);
 
 		if (res != 0) {
 			mm_free(eonce);
