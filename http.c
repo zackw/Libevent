@@ -490,6 +490,14 @@ evhttp_is_connection_keepalive(struct evkeyvalq* headers)
 	    && evutil_ascii_strncasecmp(connection, "keep-alive", 10) == 0);
 }
 
+static const char * DAYS_OF_WEEK[] = {
+	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+};
+static const char * MONTHS_OF_YEAR[] = {
+	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+};
+
 /* Add a correct "Date" header to headers, unless it already has one. */
 static void
 evhttp_maybe_add_date_header(struct evkeyvalq *headers)
@@ -507,8 +515,30 @@ evhttp_maybe_add_date_header(struct evkeyvalq *headers)
 		gmtime_r(&t, &cur);
 		cur_p = &cur;
 #endif
+		/*
+		  We'd like to just use strftime here, but we can't: It's
+		  locale-dependent, and not threadsafe in the presence of
+		  setenv.
+
 		if (strftime(date, sizeof(date),
 			"%a, %d %b %Y %H:%M:%S GMT", cur_p) != 0) {
+			evhttp_add_header(headers, "Date", date);
+		}
+		*/
+
+		if (cur_p->tm_wday < 0 || cur_p->tm_wday > 6 ||
+		    cur_p->tm_mon < 0 || cur_p->tm_mon > 11)
+			return;
+
+		if (evutil_snprintf(date, sizeof(date),
+			"%s, %02d %s %04d %02d:%02d:%02d GMT",
+			DAYS_OF_WEEK[cur_p->tm_wday],
+			cur_p->tm_mday,
+			MONTHS_OF_YEAR[cur_p->tm_mon],
+			cur_p->tm_year + 1900,
+			cur_p->tm_hour,
+			cur_p->tm_min,
+			cur_p->tm_sec) >= 0) {
 			evhttp_add_header(headers, "Date", date);
 		}
 	}
