@@ -330,6 +330,7 @@ static void be_openssl_destruct(struct bufferevent *);
 static int be_openssl_adj_timeouts(struct bufferevent *);
 static int be_openssl_flush(struct bufferevent *bufev,
     short iotype, enum bufferevent_flush_mode mode);
+static int be_openssl_shutdown(struct bufferevent *bufev);
 static int be_openssl_ctrl(struct bufferevent *, enum bufferevent_ctrl_op, union bufferevent_ctrl_data *);
 
 const struct bufferevent_ops bufferevent_ops_openssl = {
@@ -340,6 +341,7 @@ const struct bufferevent_ops bufferevent_ops_openssl = {
 	be_openssl_destruct,
 	be_openssl_adj_timeouts,
 	be_openssl_flush,
+	be_openssl_shutdown,
 	be_openssl_ctrl,
 };
 
@@ -1202,6 +1204,14 @@ be_openssl_flush(struct bufferevent *bufev,
     short iotype, enum bufferevent_flush_mode mode)
 {
 	/* XXXX Implement this. */
+	return 0;
+}
+
+static int
+be_openssl_shutdown(struct bufferevent *bufev)
+{
+	/*XXX Implement me TODO TODO TODO */
+	
 	return 0;
 }
 

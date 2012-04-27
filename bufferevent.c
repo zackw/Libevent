@@ -598,6 +598,68 @@ bufferevent_flush(struct bufferevent *bufev,
 }
 
 void
+bufferevent_shutdown_complete_(struct bufferevent *bufev)
+{
+	/* TODO: Implement BEV_SHUTDOWN_FREE */
+	bufferevent_incref_and_lock_(bufev);
+	bufferevent_disable(bufev, EV_WRITE);
+	bufferevent_run_eventcb_(bufev, BEV_EVENT_SHUTDOWN);
+	bufferevent_decref_and_unlock_(bufev);
+}
+
+static void
+bufferevent_shutdown_done_flushing(struct bufferevent *bufev)
+{
+	/* requires lock. */
+	if (bufev->be_ops->shutdown) {
+		/* TODO: Implement BEV_SHUTDOWN_DIRTY */
+		bufev->be_ops->shutdown(bufev);
+	} else {
+		bufferevent_shutdown_complete_(bufev);
+	}
+}
+
+static void
+bufferevent_shutdown_flushed_some_cb(
+	struct evbuffer *evb, const struct evbuffer_cb_info *info, void *arg)
+{
+	struct bufferevent *bev = arg;
+
+	if (evbuffer_get_length(bev->output) == 0) {
+		/* We flushed everything. Time to shut down. */
+		bufferevent_shutdown_done_flushing(bev);
+	}
+}
+
+int
+bufferevent_shutdown(struct bufferevent *bufev,
+    unsigned flags)
+{
+	struct bufferevent_private *bufev_private =
+	    EVUTIL_UPCAST(bufev, struct bufferevent_private, bev);
+	int r = 0;
+	BEV_LOCK(bufev);
+	if (bufev_private->shutting_down)
+		goto done;
+
+	bufev_private->shutting_down = 1;
+
+	/* Unless BEV_SHUTDOWN_NOFLUSH, we should wait till everything is
+	 * flushed. */
+	/* TODO: Implement BEV_SHUTDOWN_NOFLUSH */
+	evbuffer_freeze(bufev->output, 0);
+	if (evbuffer_get_length(bufev->output) != 0)
+		evbuffer_add_cb(bufev->output,
+		    bufferevent_shutdown_flushed_some_cb, bufev);
+	else
+		bufferevent_shutdown_done_flushing(bufev);
+
+done:
+	BEV_UNLOCK(bufev);
+	return r;
+}
+
+void
 bufferevent_incref_and_lock_(struct bufferevent *bufev)
 {
 	struct bufferevent_private *bufev_private =

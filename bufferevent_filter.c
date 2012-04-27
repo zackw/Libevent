@@ -68,6 +68,7 @@ static void be_filter_writecb(struct bufferevent *, void *);
 static void be_filter_eventcb(struct bufferevent *, short, void *);
 static int be_filter_flush(struct bufferevent *bufev,
     short iotype, enum bufferevent_flush_mode mode);
+static int be_filter_shutdown(struct bufferevent *bufev);
 static int be_filter_ctrl(struct bufferevent *, enum bufferevent_ctrl_op, union bufferevent_ctrl_data *);
 
 static void bufferevent_filtered_outbuf_cb(struct evbuffer *buf,
@@ -102,6 +103,7 @@ const struct bufferevent_ops bufferevent_ops_filter = {
 	be_filter_destruct,
 	bufferevent_generic_adj_timeouts_,
 	be_filter_flush,
+	be_filter_shutdown,
 	be_filter_ctrl,
 };
 
@@ -465,6 +467,10 @@ be_filter_eventcb(struct bufferevent *underlying, short what, void *me_)
 
 	bufferevent_incref_and_lock_(bev);
 	/* All we can really to is tell our own eventcb. */
+	if (what & BEV_EVENT_SHUTDOWN) {
+		bufferevent_shutdown_complete_(bev);
+		what &= ~BEV_EVENT_SHUTDOWN;
+	}
 	bufferevent_run_eventcb_(bev, what);
 	bufferevent_decref_and_unlock_(bev);
 }
@@ -492,6 +498,15 @@ be_filter_flush(struct bufferevent *bufev,
 	bufferevent_decref_and_unlock_(bufev);
 
 	return processed_any;
+}
+
+static int
+be_filter_shutdown(struct bufferevent *bufev)
+{
+	struct bufferevent_filtered *bevf = upcast(bufev);
+
+	bufferevent_shutdown(bevf->underlying, 0);
+	return 0;
 }
 
 static int

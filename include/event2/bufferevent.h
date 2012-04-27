@@ -101,6 +101,7 @@ extern "C" {
 #define BEV_EVENT_ERROR		0x20	/**< unrecoverable error encountered */
 #define BEV_EVENT_TIMEOUT	0x40	/**< user-specified timeout reached */
 #define BEV_EVENT_CONNECTED	0x80	/**< connect operation finished. */
+#define BEV_EVENT_SHUTDOWN     0x100    /**< shutdown operation finished. */
 /**@}*/
 
 /**
@@ -533,6 +534,45 @@ enum bufferevent_flush_mode {
 int bufferevent_flush(struct bufferevent *bufev,
     short iotype,
     enum bufferevent_flush_mode mode);
+
+/** @name bufferevent_shutown flags
+
+    These flags are passed as arguments to a bufferevent_shutdown.
+
+    @{
+*/
+
+/** Do not try to flush pending data on the bufferevent's outbuf. Instead,
+ * start the shutdown operation immediately. */
+#define BEV_SHUTDOWN_NOFLUSH 0x01
+/** Instead of giving a BEV_EVENT_SHUTDOWN event when the shutdown is finished,
+ * just free the bufferevent. */
+#define BEV_SHUTDOWN_FREE    0x02
+/** Instead of performing a clean shutdown, just close the connection in the
+ * fasted way possible. */
+#define BEV_SHUTDOWN_DIRTY   0x04
+/**@}*/
+
+/**
+   Try to flush all the data currently pending to write in this bufferevent.
+   When the data is all sent, try to send a clean shutdown to the other side
+   of the connection.  (That'd be a shutdown(2) for a socket, an SSL_shutdown
+   for an SSL socket, and so on.)
+
+   Data may still be received on the on the bufferevent if EV_READ is enabled.
+   If you don't want that, disable EV_READ.
+
+   Once this function is called, you may not add any more data to this
+   bufferevent's outbuf.
+
+   The 'flags' argument of this function contains one or more of the
+   BEV_SHUTDOWN_* flags; see their documentation for more information.
+
+   If a write timeout is set on this bufferevent, then we trigger a write
+   timeout event if more than that amount of time passes before
+ */
+int bufferevent_shutdown(struct bufferevent *bufev,
+    unsigned flags);
 
 /**
    @name Filtering support

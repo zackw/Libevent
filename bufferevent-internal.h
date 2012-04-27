@@ -160,6 +160,8 @@ struct bufferevent_private {
 	/** Flag: set if a connect failed prematurely; this is a hack for
 	 * getting around the bufferevent abstraction. */
 	unsigned connection_refused : 1;
+	/** Flag: Set if we are currently shutting down. */
+	unsigned shutting_down : 1;
 	/** Set to the events pending if we have deferred callbacks and
 	 * an events callback is pending. */
 	short eventcb_pending;
@@ -262,6 +264,9 @@ struct bufferevent_ops {
 	/** Called to flush data. */
 	int (*flush)(struct bufferevent *, short, enum bufferevent_flush_mode);
 
+	/** Called when we're shutting down */
+	int (*shutdown)(struct bufferevent *);
+
 	/** Called to access miscellaneous fields. */
 	int (*ctrl)(struct bufferevent *, enum bufferevent_ctrl_op, union bufferevent_ctrl_data *);
 
@@ -346,6 +351,9 @@ void bufferevent_run_eventcb_(struct bufferevent *bufev, short what);
 /** Internal: Add the event 'ev' with timeout tv, unless tv is set to 0, in
  * which case add ev with no timeout. */
 int bufferevent_add_event_(struct event *ev, const struct timeval *tv);
+
+/** Internal: Called directly or indirectly by a shutdown function. */
+void bufferevent_shutdown_complete_(struct bufferevent *bufev);
 
 /* =========
  * These next functions implement timeouts for bufferevents that aren't doing

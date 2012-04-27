@@ -306,6 +306,23 @@ be_pair_flush(struct bufferevent *bev, short iotype,
 	return 0;
 }
 
+static int
+be_pair_shutdown(struct bufferevent *bev)
+{
+	struct bufferevent_pair *bev_p = upcast(bev);
+	struct bufferevent *partner;
+
+	incref_and_lock(bev);
+	partner = downcast(bev_p->partner);
+	/* TODO: This should only happen if the other side is reading,
+	 * and should wait for their next read attempt */
+	bufferevent_run_eventcb_(partner, BEV_EVENT_EOF|BEV_EVENT_READING);
+	bufferevent_shutdown_complete_(bev);
+	decref_and_unlock(bev);
+
+	return 0;
+}
+
 struct bufferevent *
 bufferevent_pair_get_partner(struct bufferevent *bev)
 {
@@ -329,5 +346,6 @@ const struct bufferevent_ops bufferevent_ops_pair = {
 	be_pair_destruct,
 	bufferevent_generic_adj_timeouts_,
 	be_pair_flush,
+	be_pair_shutdown,
 	NULL, /* ctrl */
 };

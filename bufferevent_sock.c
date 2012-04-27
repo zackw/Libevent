@@ -81,6 +81,7 @@ static int be_socket_disable(struct bufferevent *, short);
 static void be_socket_destruct(struct bufferevent *);
 static int be_socket_adj_timeouts(struct bufferevent *);
 static int be_socket_flush(struct bufferevent *, short, enum bufferevent_flush_mode);
+static int be_socket_shutdown(struct bufferevent *);
 static int be_socket_ctrl(struct bufferevent *, enum bufferevent_ctrl_op, union bufferevent_ctrl_data *);
 
 static void be_socket_setfd(struct bufferevent *, evutil_socket_t);
@@ -93,6 +94,7 @@ const struct bufferevent_ops bufferevent_ops_socket = {
 	be_socket_destruct,
 	be_socket_adj_timeouts,
 	be_socket_flush,
+	be_socket_shutdown,
 	be_socket_ctrl,
 };
 
@@ -610,6 +612,30 @@ be_socket_flush(struct bufferevent *bev, short iotype,
 	return 0;
 }
 
+static int
+be_socket_shutdown(struct bufferevent *bufev)
+{
+	int r;
+	evutil_socket_t fd = event_get_fd(&bufev->ev_write);
+
+	if (fd < 0)
+		return -1;
+
+#ifdef SHUT_WR
+	r = shutdown(fd, SHUT_WR);
+#else
+	r = shutdown(fd, 1);
+#endif
+
+	if (r == 0) {
+		bufferevent_shutdown_complete_(bufev);
+	} else {
+		bufferevent_run_eventcb_(bufev,
+		    BEV_EVENT_ERROR|BEV_EVENT_WRITING);
+	}
+
+	return 0;
+}
 
 static void
 be_socket_setfd(struct bufferevent *bufev, evutil_socket_t fd)
