@@ -50,7 +50,9 @@ regress_thread_SOURCES = regress_thread.c
 PTHREAD_LIBS += ../libevent_pthreads.la
 endif
 if BUILD_WIN32
+if THREADS
 regress_thread_SOURCES = regress_thread.c
+endif
 endif
 if ZLIB_REGRESS
 regress_zlib_SOURCES = regress_zlib.c

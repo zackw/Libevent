@@ -202,7 +202,7 @@ test_ratelimiting(void)
 
 	base_cfg = event_config_new();
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(EVTHREAD_USE_WINDOWS_THREADS_IMPLEMENTED)
 	if (cfg_enable_iocp) {
 		evthread_use_windows_threads();
 		event_config_set_flag(base_cfg, EVENT_BASE_FLAG_STARTUP_IOCP);

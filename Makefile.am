@@ -129,8 +129,10 @@ SUBDIRS = . include sample test
 if BUILD_WIN32
 
 SYS_LIBS = -lws2_32 -lshell32 -ladvapi32
-SYS_SRC = win32select.c evthread_win32.c buffer_iocp.c event_iocp.c \
-	bufferevent_async.c
+SYS_SRC = win32select.c
+if THREADS
+SYS_SRC += evthread_win32.c buffer_iocp.c event_iocp.c bufferevent_async.c
+endif
 SYS_INCLUDES = -IWIN32-Code
 
 else
