@@ -1479,10 +1479,10 @@ test_event_remove_timeout(void *ptr)
 
 	event_base_assert_ok_(base);
 end:
+	event_free(ev[0]);
 	event_free(ev[1]);
 	event_free(ev[2]);
 	event_free(ev[3]);
-	event_free(ev[4]);
 }
 
 static void
