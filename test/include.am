@@ -42,7 +42,7 @@ noinst_HEADERS+=				\
 	test/tinytest_local.h			\
 	test/tinytest_macros.h
 
-TESTS = $(top_srcdir)/test/test.sh
+TESTS = test/test.sh
 
 if BUILD_REGRESS
 BUILT_SOURCES += test/regress.gen.c test/regress.gen.h

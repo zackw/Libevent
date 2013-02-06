@@ -69,6 +69,7 @@ libevent_openssl.pc
 /missing
 /stamp-h1
 /stamp-h2
+/test-driver
 
 /include/event2/event-config.h
 /evconfig-private.h
