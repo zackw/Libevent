@@ -1,20 +1,42 @@
 dnl Backports of autoconf >=2.60 functionality for autoconf 2.59's sake.
 
-m4_ifdef([AC_USE_SYSTEM_EXTENSIONS], , [
-# AC_USE_SYSTEM_EXTENSIONS
-# ------------------------
-# Enable extensions on systems that normally disable them,
-# typically due to standards-conformance issues.
-#
-# Remember that #undef in AH_VERBATIM gets replaced with #define by
-# AC_DEFINE.  The goal here is to define all known feature-enabling
-# macros, then, if reports of conflicts are made, disable macros that
-# cause problems on some platforms (such as __EXTENSIONS__).
+dnl Even in the very latest autoconf, AC_INCLUDES_DEFAULT does a bunch
+dnl of checks for pre-C89 stuff, which is now completely unnecessary.
+dnl (sys/types.h and sys/stat.h are POSIX, not C89, so you might
+dnl suspect them of not being ubiquitous, but in fact they are.
+dnl However, regrettably, stdint.h, inttypes.h, and unistd.h still
+dnl have to be checked for.)
+m4_undefine([_AC_INCLUDES_DEFAULT_REQUIREMENTS])dnl
+AC_DEFUN([_AC_INCLUDES_DEFAULT_REQUIREMENTS],
+[m4_divert_text([DEFAULTS],
+[# Factoring default headers for most tests.
+dnl If ever you change this variable, please keep autoconf.texi in sync.
+ac_includes_default="\
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <string.h>
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif"
+])dnl
+AC_CHECK_HEADERS([inttypes.h stdint.h unistd.h], [], [], [$ac_includes_default])])
+
+dnl This has a bugfix in it that has not yet made it to autoconf mainline.
+m4_undefine([AC_USE_SYSTEM_EXTENSIONS])
 AC_DEFUN_ONCE([AC_USE_SYSTEM_EXTENSIONS],
 [AC_BEFORE([$0], [AC_COMPILE_IFELSE])dnl
 AC_BEFORE([$0], [AC_RUN_IFELSE])dnl
 
-  AC_CHECK_HEADER([minix/config.h], [MINIX=yes], [MINIX=])
+  AC_CHECK_HEADER([minix/config.h], [MINIX=yes], [MINIX=], [AC_INCLUDES_DEFAULT])
   if test "$MINIX" = yes; then
     AC_DEFINE([_POSIX_SOURCE], [1],
       [Define to 1 if you need to in order for `stat' and other

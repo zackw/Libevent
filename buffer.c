@@ -41,6 +41,7 @@
 #endif
 
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -65,10 +66,6 @@
 #ifdef EVENT__HAVE_SYS_SENDFILE_H
 #include <sys/sendfile.h>
 #endif
-#ifdef EVENT__HAVE_SYS_STAT_H
-#include <sys/stat.h>
-#endif
-
 
 #include <errno.h>
 #include <stdio.h>

@@ -18,15 +18,6 @@ dnl AM_SILENT_RULES req. automake 1.11.  [no] defaults V=1
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_DEFINE(NUMERIC_VERSION, 0x02010201, [Numeric representation of the version])
 
-dnl Try and get a full POSIX environment on obscure systems
-dnl AC_USE_SYSTEM_EXTENSIONS introduced in autoconf 2.60
-ifdef([AC_USE_SYSTEM_EXTENSIONS], [
-AC_USE_SYSTEM_EXTENSIONS
-], [
-AC_GNU_SOURCE
-AC_AIX
-AC_MINIX
-])
 
 dnl the 'build' machine is where we run configure and compile
 dnl the 'host' machine is where the resulting stuff runs.
@@ -35,10 +26,21 @@ AC_CANONICAL_HOST
 
 dnl Checks for programs.
 dnl $(MKDIR_P) handled by AM_INIT_AUTOMAKE
+dnl pkg-config 0.15.0 may not be strictly necessary, but it's what we
+dnl were looking for before
 AM_PROG_CC_C_O
 AC_PROG_SED
 AC_PROG_INSTALL
 AC_PROG_LN_S
+PKG_PROG_PKG_CONFIG([0.15.0])
+
+dnl Try and get a full POSIX environment on obscure systems.  This has
+dnl to go before LT_INIT, which does compile checks even though you
+dnl might think of it as a check for a program.
+
+AC_USE_SYSTEM_EXTENSIONS
+AC_SYS_LARGEFILE
+
 LT_INIT
 
 # We need to test for at least gcc 2.95 here, because older versions don't
@@ -133,7 +135,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #endif
 ]])],[cygwin=true; AC_MSG_RESULT(yes)],[cygwin=false; AC_MSG_RESULT(no)])
 
-AC_CHECK_HEADERS([zlib.h])
+AC_CHECK_HEADERS([zlib.h], [], [], [AC_INCLUDES_DEFAULT()])
 
 if test "x$ac_cv_header_zlib_h" = "xyes"; then
 dnl Determine if we have zlib for regression tests
@@ -163,8 +165,6 @@ AC_SUBST(EV_LIB_WS32)
 AC_SUBST(EV_LIB_GDI)
 AC_SUBST(OPENSSL_LIBADD)
 
-AC_SYS_LARGEFILE
-
 LIBEVENT_OPENSSL
 
 dnl Checks for header files.
@@ -188,12 +188,11 @@ AC_CHECK_HEADERS([ \
   sys/select.h \
   sys/sendfile.h \
   sys/socket.h \
-  sys/stat.h \
   sys/time.h \
   sys/timerfd.h \
   sys/uio.h \
   sys/wait.h \
-])
+], [], [], [AC_INCLUDES_DEFAULT])
 
 AC_CHECK_HEADERS(sys/sysctl.h, [], [], [
 #ifdef HAVE_SYS_PARAM_H
