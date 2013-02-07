@@ -97,7 +97,8 @@ LIBEVENT_PKGCONFIG=libevent.pc
 # included from other files.
 PLATFORM_DEPENDENT_SRC = \
 	arc4random.c \
-	epoll_sub.c
+	epoll_sub.c \
+	strlcpy.c
 
 EXTRA_DIST = \
 	ChangeLog-1.4 \
@@ -199,7 +200,6 @@ CORE_SRC =					\
 	evutil_time.c				\
 	listener.c				\
 	log.c					\
-	strlcpy.c				\
 	$(SYS_SRC)
 
 EXTRAS_SRC =					\

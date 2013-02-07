@@ -303,6 +303,7 @@ AC_CHECK_FUNCS([ \
   getifaddrs \
   getnameinfo \
   getprotobynumber \
+  getservbyname \
   gettimeofday \
   inet_ntop \
   inet_pton \
@@ -317,7 +318,6 @@ AC_CHECK_FUNCS([ \
   setenv \
   setrlimit \
   sigaction \
-  strlcpy \
   strsep \
   strtok_r \
   strtoll \
@@ -328,6 +328,8 @@ AC_CHECK_FUNCS([ \
   usleep \
   vasprintf \
 ])
+
+AC_REPLACE_FUNCS([strlcpy])
 
 AC_CACHE_CHECK(
     [for getaddrinfo],
@@ -351,12 +353,9 @@ if test "$libevent_cv_getaddrinfo" = "yes" ; then
     AC_DEFINE([HAVE_GETADDRINFO], [1], [Do we have getaddrinfo()?])
 else
 
-AC_CHECK_FUNCS([getservbyname])
 # Check for gethostbyname_r in all its glorious incompatible versions.
 #   (This is cut-and-pasted from Tor, which based its logic on
 #   Python's configure.in.)
-AH_TEMPLATE(HAVE_GETHOSTBYNAME_R,
-  [Define this if you have any gethostbyname_r()])
 
 AC_CHECK_FUNC(gethostbyname_r, [
   AC_MSG_CHECKING([how many arguments gethostbyname_r() wants])
