@@ -49,12 +49,8 @@
 #ifdef EVENT__HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef EVENT__HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
-#ifdef EVENT__HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>

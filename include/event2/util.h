@@ -49,9 +49,7 @@ extern "C" {
 #ifdef EVENT__HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
-#ifdef EVENT__HAVE_STDDEF_H
 #include <stddef.h>
-#endif
 #ifdef _MSC_VER
 #include <BaseTsd.h>
 #endif

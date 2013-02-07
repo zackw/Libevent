@@ -80,9 +80,7 @@
 #ifdef EVENT__HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef EVENT__HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
 
 #undef timeout_pending
 #undef timeout_initialized

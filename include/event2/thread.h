@@ -199,7 +199,7 @@ int evthread_use_windows_threads(void);
 #define EVTHREAD_USE_WINDOWS_THREADS_IMPLEMENTED 1
 #endif
 
-#if defined(EVENT__HAVE_PTHREADS) || defined(EVENT_IN_DOXYGEN_)
+#if defined(EVENT__HAVE_PTHREAD) || defined(EVENT_IN_DOXYGEN_)
 /** Sets up Libevent for use with Pthreads locking and thread ID functions.
     Unavailable if Libevent is not build for use with pthreads.  Requires
     libraries to link against Libevent_pthreads as well as Libevent.

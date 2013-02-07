@@ -41,7 +41,7 @@
 #include <sys/wait.h>
 #endif
 
-#ifdef EVENT__HAVE_PTHREADS
+#ifdef EVENT__HAVE_PTHREAD
 #include <pthread.h>
 #elif defined(_WIN32)
 #include <process.h>
@@ -65,7 +65,7 @@
 #include "tinytest_macros.h"
 #include "time-internal.h"
 
-#ifdef EVENT__HAVE_PTHREADS
+#ifdef EVENT__HAVE_PTHREAD
 #define THREAD_T pthread_t
 #define THREAD_FN void *
 #define THREAD_RETURN() return (NULL)

@@ -360,7 +360,7 @@ const struct testcase_setup_t legacy_setup = {
 
 /* ============================================================ */
 
-#if (!defined(EVENT__HAVE_PTHREADS) && !defined(_WIN32)) || defined(EVENT__DISABLE_THREAD_SUPPORT)
+#if (!defined(EVENT__HAVE_PTHREAD) && !defined(_WIN32)) || defined(EVENT__DISABLE_THREAD_SUPPORT)
 struct testcase_t thread_testcases[] = {
 	{ "basic", NULL, TT_SKIP, NULL, NULL },
 	END_OF_TESTCASES

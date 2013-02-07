@@ -114,7 +114,7 @@ EXTRA_DIST = \
 	$(PLATFORM_DEPENDENT_SRC)
 
 LIBEVENT_LIBS_LA = libevent.la libevent_core.la libevent_extra.la
-if PTHREADS
+if PTHREAD
 LIBEVENT_LIBS_LA += libevent_pthreads.la
 LIBEVENT_PKGCONFIG += libevent_pthreads.pc
 endif
@@ -226,7 +226,7 @@ libevent_core_la_SOURCES = $(CORE_SRC)
 libevent_core_la_LIBADD = @LTLIBOBJS@ $(SYS_LIBS)
 libevent_core_la_LDFLAGS = $(GENERIC_LDFLAGS)
 
-if PTHREADS
+if PTHREAD
 libevent_pthreads_la_SOURCES = evthread_pthread.c
 libevent_pthreads_la_LIBADD = $(MAYBE_CORE)
 libevent_pthreads_la_LDFLAGS = $(GENERIC_LDFLAGS)

@@ -112,7 +112,6 @@ AM_CONDITIONAL([BUILD_REGRESS], [test "$enable_libevent_regress" = "yes"])
 dnl Checks for libraries.
 AC_SEARCH_LIBS([inet_ntoa], [nsl])
 AC_SEARCH_LIBS([socket], [socket])
-AC_SEARCH_LIBS([inet_aton], [resolv])
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_SEARCH_LIBS([sendfile], [sendfile])
 
@@ -171,17 +170,12 @@ LIBEVENT_OPENSSL
 dnl Checks for header files.
 AC_CHECK_HEADERS([ \
   arpa/inet.h \
-  fcntl.h \
   ifaddrs.h \
   mach/mach_time.h \
   netdb.h \
   netinet/in.h \
   netinet/in6.h \
   netinet/tcp.h \
-  poll.h \
-  port.h \
-  stdarg.h \
-  stddef.h \
   sys/devpoll.h \
   sys/epoll.h \
   sys/event.h \
@@ -305,14 +299,12 @@ AC_CHECK_FUNCS([ \
   clock_gettime \
   eventfd \
   epoll_create1 \
-  fcntl \
   getegid \
   geteuid \
   getifaddrs \
   getnameinfo \
   getprotobynumber \
   gettimeofday \
-  inet_aton \
   inet_ntop \
   inet_pton \
   issetugid \
@@ -326,8 +318,6 @@ AC_CHECK_FUNCS([ \
   setenv \
   setrlimit \
   sigaction \
-  signal \
-  splice \
   strlcpy \
   strsep \
   strtok_r \
@@ -381,7 +371,6 @@ AC_CHECK_FUNC(gethostbyname_r, [
     int i1, i2;
     (void)gethostbyname_r(cp1,h1,cp2,i1,&h2,&i2);
   ]])],[
-    AC_DEFINE(HAVE_GETHOSTBYNAME_R)
     AC_DEFINE(HAVE_GETHOSTBYNAME_R_6_ARG, 1,
      [Define this if gethostbyname_r takes 6 arguments])
     AC_MSG_RESULT(6)
@@ -394,7 +383,6 @@ AC_CHECK_FUNC(gethostbyname_r, [
       int i1, i2;
       (void)gethostbyname_r(cp1,h1,cp2,i1,&i2);
     ]])],[
-      AC_DEFINE(HAVE_GETHOSTBYNAME_R)
       AC_DEFINE(HAVE_GETHOSTBYNAME_R_5_ARG, 1,
         [Define this if gethostbyname_r takes 5 arguments])
       AC_MSG_RESULT(5)
@@ -407,7 +395,6 @@ AC_CHECK_FUNC(gethostbyname_r, [
        struct hostent_data hd;
        (void) gethostbyname_r(cp1,h1,&hd);
      ]])], [
-       AC_DEFINE(HAVE_GETHOSTBYNAME_R)
        AC_DEFINE(HAVE_GETHOSTBYNAME_R_3_ARG, 1,
          [Define this if gethostbyname_r takes 3 arguments])
        AC_MSG_RESULT(3)
@@ -603,7 +590,11 @@ AC_CHECK_SIZEOF(size_t)
 AC_CHECK_SIZEOF(void *)
 AC_CHECK_SIZEOF(off_t)
 
-AC_CHECK_TYPES([struct in6_addr, struct sockaddr_in6, sa_family_t, struct addrinfo, struct sockaddr_storage], , ,
+AC_CHECK_TYPES([struct in6_addr,
+                struct sockaddr_in6,
+                sa_family_t,
+                struct addrinfo,
+                struct sockaddr_storage], , ,
 [#define _GNU_SOURCE
 #include <sys/types.h>
 #ifdef HAVE_NETINET_IN_H
@@ -630,7 +621,10 @@ AC_CHECK_TYPES([struct in6_addr, struct sockaddr_in6, sa_family_t, struct addrin
 #endif
 #endif
 ])
-AC_CHECK_MEMBERS([struct in6_addr.s6_addr32, struct in6_addr.s6_addr16, struct sockaddr_in.sin_len, struct sockaddr_in6.sin6_len, struct sockaddr_storage.ss_family, struct sockaddr_storage.__ss_family], , ,
+AC_CHECK_MEMBERS([struct sockaddr_in.sin_len,
+                  struct sockaddr_in6.sin6_len,
+                  struct sockaddr_storage.ss_family,
+                  struct sockaddr_storage.__ss_family], , ,
 [#include <sys/types.h>
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -651,14 +645,6 @@ AC_CHECK_MEMBERS([struct in6_addr.s6_addr32, struct in6_addr.s6_addr16, struct s
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #endif
-#endif
-])
-
-AC_CHECK_TYPES([struct so_linger],
-[#define HAVE_SO_LINGER], ,
-[
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
 #endif
 ])
 
@@ -691,19 +677,18 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],
 ])
 
 # check if we can compile with pthreads
-have_pthreads=no
+have_pthread=no
 if test x$bwin32 != xtrue && test "$enable_thread_support" != "no"; then
-  AX_PTHREAD([
-	AC_DEFINE(HAVE_PTHREADS, 1,
-		[Define if we have pthreads on this system])
-	have_pthreads=yes])
-  CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-  AC_CHECK_SIZEOF(pthread_t, ,
-     [AC_INCLUDES_DEFAULT()
-      #include <pthread.h> ]
-  )
+  AX_PTHREAD
+  if test x$ax_pthread_ok = xyes; then
+    have_pthread=yes
+    CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+    AC_CHECK_SIZEOF(pthread_t, ,
+       [AC_INCLUDES_DEFAULT()
+        #include <pthread.h> ])
+  fi
 fi
-AM_CONDITIONAL(PTHREADS, [test "$have_pthreads" != "no" && test "$enable_thread_support" != "no"])
+AM_CONDITIONAL(PTHREAD, [test "$have_pthread" != "no"])
 
 # check if we should compile locking into the library
 if test x$enable_thread_support = xno; then

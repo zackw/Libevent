@@ -85,7 +85,7 @@ test_regress_SOURCES = 				\
 	$(regress_thread_SOURCES)		\
 	$(regress_zlib_SOURCES)
 
-if PTHREADS
+if PTHREAD
 regress_thread_SOURCES = test/regress_thread.c
 PTHREAD_LIBS += libevent_pthreads.la
 endif
