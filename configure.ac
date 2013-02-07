@@ -12,12 +12,49 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h  evconfig-private.h:evconfig-private.h.in])
 AC_CONFIG_FILES([libevent.pc libevent_openssl.pc libevent_pthreads.pc
                  Makefile])
-
 AM_INIT_AUTOMAKE
 dnl AM_SILENT_RULES req. automake 1.11.  [no] defaults V=1
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_DEFINE(NUMERIC_VERSION, 0x02010201, [Numeric representation of the version])
 
+dnl Additional configure options...
+LIBEVENT_DISABLE([gcc-warnings],
+                 [verbose warnings from GCC])
+LIBEVENT_ENABLE( [gcc-warnings-are-errors],
+                 [making warnings into errors])
+LIBEVENT_ENABLE( [gcc-hardening],
+                 [compiler defenses against some security bugs])
+LIBEVENT_DISABLE([thread-support],
+                 [support for multithreading])
+LIBEVENT_DISABLE([malloc-replacement],
+                 [support for user-supplied memory management functions])
+LIBEVENT_DISABLE([openssl],
+                 [support for the SSL protocol (via openssl)])
+LIBEVENT_DISABLE([debug-mode],
+                 [support for running in debug mode])
+LIBEVENT_DISABLE([libevent-install], [installation of libevent])
+LIBEVENT_DISABLE([libevent-regress], [regression tests])
+LIBEVENT_ENABLE( [function-sections],
+           [compiler options for smaller static binaries (with --gc-sections)])
+LIBEVENT_ENABLE( [verbose-debug], [verbose debug logging])
+
+if test $enable_thread_support = no; then
+   AC_DEFINE(DISABLE_THREAD_SUPPORT, 1,
+	[Define if libevent should not be compiled with thread support])
+fi
+
+if test $enable_malloc_replacement = no; then
+  AC_DEFINE(DISABLE_MM_REPLACEMENT, 1,
+        [Define if libevent should not allow replacing the mm functions])
+fi
+
+if test $enable_debug_mode = no; then
+  AC_DEFINE(DISABLE_DEBUG_MODE, 1,
+        [Define if libevent should build without support for a debug mode])
+fi
+
+AM_CONDITIONAL([BUILD_REGRESS], [test "$enable_libevent_regress" = "yes"])
+AM_CONDITIONAL([INSTALL_LIBEVENT], [test "$enable_libevent_install" = "yes"])
 
 dnl the 'build' machine is where we run configure and compile
 dnl the 'host' machine is where the resulting stuff runs.
@@ -25,115 +62,186 @@ AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
 dnl Checks for programs.
-dnl $(MKDIR_P) handled by AM_INIT_AUTOMAKE
+dnl mkdir -p handled by AM_INIT_AUTOMAKE
+dnl sed handled by LT_INIT
 dnl pkg-config 0.15.0 may not be strictly necessary, but it's what we
 dnl were looking for before
 AM_PROG_CC_C_O
-AC_PROG_SED
 AC_PROG_INSTALL
 AC_PROG_LN_S
 PKG_PROG_PKG_CONFIG([0.15.0])
 
-dnl Try and get a full POSIX environment on obscure systems.  This has
-dnl to go before LT_INIT, which does compile checks even though you
-dnl might think of it as a check for a program.
+# Set up the compilation environment.  Must come before any compile
+# checks, including those embedded in e.g. LT_INIT.  Preprocessor
+# checks are OK (as long as they only test predefined macros, not
+# stuff from header files).
 
+# Try and get a full POSIX environment on obscure systems.
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
 
-LT_INIT
-
-# We need to test for at least gcc 2.95 here, because older versions don't
-# have -fno-strict-aliasing
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#if !defined(__GNUC__) || (__GNUC__ < 2) || \
-    (__GNUC__ == 2 && __GNUC_MINOR__ < 95)
-#error "gcc older than 2.95"
+# Windows and Cygwin require special treatment in various places.
+AC_CACHE_CHECK([for Windows], [ac_cv_sys_win32],
+  [AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
+#ifndef _WIN32
+#error "not WIN32"
 #endif
-]])], [have_gcc295=yes], [have_gcc295=no])
+  ]])], [ac_cv_sys_win32=yes], [ac_cv_sys_win32=no])])
+bwin32=$ac_cv_sys_win32
 
-if test "$GCC" = "yes" ; then
-        # Enable many gcc warnings by default...
-        CFLAGS="$CFLAGS -Wall"
-	# And disable the strict-aliasing optimization, since it breaks
-	# our sockaddr-handling code in strange ways.
-	if test x$have_gcc295 = xyes; then
-		CFLAGS="$CFLAGS -fno-strict-aliasing"
-	fi
+AC_CACHE_CHECK([for Cygwin], [ac_cv_sys_cygwin],
+  [AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
+#ifndef __CYGWIN__
+#error "not Cygwin"
+#endif
+  ]])], [ac_cv_sys_cygwin=yes], [ac_cv_sys_cygwin=no])])
+
+AM_CONDITIONAL(BUILD_WIN32, test x$bwin32 = xtrue)
+AM_CONDITIONAL(BUILD_CYGWIN, test x$cygwin = xtrue)
+AM_CONDITIONAL(BUILD_WITH_NO_UNDEFINED, test x$bwin32 = xtrue || test x$cygwin = xtrue)
+
+# check if we can compile with pthreads
+have_pthread=no
+if test $bwin32 != yes && test $enable_thread_support = yes; then
+  AX_PTHREAD
+  if test x$ax_pthread_ok = xyes; then
+    have_pthread=yes
+    CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+  fi
 fi
+AM_CONDITIONAL(PTHREAD, [test "$have_pthread" != "no"])
+
+# At least some versions of gcc >=2.95 miscompile the sockaddr code
+# with strict aliasing optimizations on.
+AX_APPEND_COMPILE_FLAGS([-fno-strict-aliasing])
+
+# GCC's "hardening" options (which defend against various overflows)
+if test $enable_gcc_hardening = yes; then
+  hflags="-D_FORTIFY_SOURCE=2 -fwrapv -fPIE -fstack-protector-all"
+  hflags="$hflags -Wstack-protector --param ssp-buffer-size=1"
+  AX_CHECK_COMPILE_FLAG([$hflags],
+    [AX_APPEND_FLAG([$hflags])],
+    [AC_MSG_ERROR([Hardening requested, but not supported by $CC])])
+fi
+
+# Enable basic warnings ...
+AX_APPEND_COMPILE_FLAGS([-Wall])
 
 # OS X Lion started deprecating the system openssl. Let's just disable
 # all deprecation warnings on OS X.
-case "$host_os" in
-
- darwin*)
-    CFLAGS="$CFLAGS -Wno-deprecated-declarations"
+case "$host_os" in darwin*)
+    AX_APPEND_COMPILE_FLAGS([-Wno-deprecated-declarations])
     ;;
 esac
 
-AC_ARG_ENABLE(gcc-warnings,
-     AS_HELP_STRING(--disable-gcc-warnings, disable verbose warnings with GCC))
+# Add some more warnings which we use in development but not in the
+# released versions.  (Some relevant gcc versions can't handle these.)
+if test $enable_gcc_warnings = yes; then
+  # AX_APPEND_COMPILE_FLAGS doesn't detect all of the situations where
+  # using a warnings switch is unsafe.
+  have_gcc4=no
+  have_gcc42=no
+  have_gcc45=no
+  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
+#if !defined __GNUC__ || __GNUC__ < 4
+#error "not GCC >=4.0"
+#endif
+])], [
+  have_gcc4=yes
+  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 2
+#error "not GCC >= 4.2"
+#endif
+])], [
+  have_gcc42=yes
+  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 5
+#error "not GCC >= 4.5"
+#endif
+])], [
+  have_gcc45=yes
+])])])
 
-AC_ARG_ENABLE(gcc-hardening,
-     AS_HELP_STRING(--enable-gcc-hardening, enable compiler security checks),
-[if test x$enableval = xyes; then
-    CFLAGS="$CFLAGS -D_FORTIFY_SOURCE=2 -fstack-protector-all"
-    CFLAGS="$CFLAGS -fwrapv -fPIE -Wstack-protector"
-    CFLAGS="$CFLAGS --param ssp-buffer-size=1"
-fi])
+  have_clang=no
+  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
+#if !defined(__clang__)
+#error "not clang"
+#endif
+])], [
+  have_clang=yes
+])
 
-AC_ARG_ENABLE(thread-support,
-     AS_HELP_STRING(--disable-thread-support, disable support for threading),
-	[], [enable_thread_support=yes])
-AC_ARG_ENABLE(malloc-replacement,
-     AS_HELP_STRING(--disable-malloc-replacement, disable support for replacing the memory mgt functions),
-        [], [enable_malloc_replacement=yes])
-AC_ARG_ENABLE(openssl,
-     AS_HELP_STRING(--disable-openssl, disable support for openssl encryption),
-        [], [enable_openssl=yes])
-AC_ARG_ENABLE(debug-mode,
-     AS_HELP_STRING(--disable-debug-mode, disable support for running in debug mode),
-        [], [enable_debug_mode=yes])
-AC_ARG_ENABLE([libevent-install],
-     AS_HELP_STRING([--disable-libevent-install, disable installation of libevent]),
-	[], [enable_libevent_install=yes])
-AC_ARG_ENABLE([libevent-regress],
-     AS_HELP_STRING([--disable-libevent-regress, skip regress in make check]),
-	[], [enable_libevent_regress=yes])
-AC_ARG_ENABLE([function-sections],
-     AS_HELP_STRING([--enable-function-sections, make static library allow smaller binaries with --gc-sections]),
-	[], [enable_function_sections=no])
-AC_ARG_ENABLE([verbose-debug],
-		AS_HELP_STRING([--enable-verbose-debug, verbose debug logging]),
-	[], [enable_verbose_debug=no])
+  # These are all known to be unproblematic if supported at all.
+  # We'd like to use -Winline but it will break the world on some 64-bit
+  # architectures.
+  AX_APPEND_COMPILE_FLAGS([ \
+    -W \
+    -Wbad-function-cast \
+    -Wchar-subscripts \
+    -Wcomment \
+    -Wfloat-equal \
+    -Wformat \
+    -Wmissing-declarations \
+    -Wmissing-prototypes \
+    -Wnested-externs \
+    -Wpointer-arith \
+    -Wredundant-decls \
+    -Wstrict-prototypes \
+    -Wswitch-enum \
+    -Wundef \
+    -Wwrite-strings \
+    -Wstrict-aliasing \
+\
+    -Wno-unused-parameter \
+  ])
 
+  # These warnings work with gcc 4.0.2 and later
+  if test $have_gcc4 = yes; then
+    AX_APPEND_COMPILE_FLAGS([ \
+      -Winit-self \
+      -Wmissing-field-initializers \
+      -Wdeclaration-after-statement \
+    ])
+  fi
 
+  # These warnings work with gcc 4.2 and later
+  if test $have_gcc42 = yes; then
+    AX_APPEND_COMPILE_FLAGS([-Waddress])
+  fi
 
-AM_CONDITIONAL([BUILD_REGRESS], [test "$enable_libevent_regress" = "yes"])
+  # These warnings work with gcc 4.2 and later, but not with clang
+  # (which tries to be feature-compatible with gcc).
+  if test $have_gcc42 = yes && test $have_clang = no; then
+    AX_APPEND_COMPILE_FLAGS([-Wnormalized=id -Woverride-init])
+  fi
+
+  # These warnings work with gcc 4.5 and later
+  if test $have_gcc45 = yes; then
+    AX_APPEND_COMPILE_FLAGS([-Wlogical-op])
+  fi
+
+  # Disable unused-function warnings for clang, because they trigger
+  # for minheap-internal.h related code.
+  if test $have_clang = yes; then
+    AX_APPEND_COMPILE_FLAGS([-Wno-unused-function])
+  fi
+fi
+
+# check if we should enable verbose debugging
+if test x$enable_verbose_debug = xyes; then
+  CFLAGS="$CFLAGS -DUSE_DEBUG"
+fi
+
+dnl Done with everything that messes with CFLAGS (except one, see the
+dnl very bottom of the file).
+
+LT_INIT
 
 dnl Checks for libraries.
 AC_SEARCH_LIBS([inet_ntoa], [nsl])
 AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_SEARCH_LIBS([sendfile], [sendfile])
-
-dnl - check if the macro _WIN32 is defined on this compiler.
-dnl - (this is how we check for a windows compiler)
-AC_MSG_CHECKING(for Windows)
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#ifndef _WIN32
-#error "not WIN32"
-#endif
-]])],[bwin32=true; AC_MSG_RESULT(yes)],[bwin32=false; AC_MSG_RESULT(no)])
-
-dnl - check if the macro __CYGWIN__ is defined on this compiler.
-dnl - (this is how we check for a cygwin version of GCC)
-AC_MSG_CHECKING(for Cygwin)
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#ifndef __CYGWIN__
-#error "not Cygwin"
-#endif
-]])],[cygwin=true; AC_MSG_RESULT(yes)],[cygwin=false; AC_MSG_RESULT(no)])
 
 AC_CHECK_HEADERS([zlib.h], [], [], [AC_INCLUDES_DEFAULT()])
 
@@ -276,10 +384,6 @@ if test "x$ac_cv_header_sys_sysctl_h" = "xyes"; then
 	     #include <sys/sysctl.h>]]
 	)
 fi
-
-AM_CONDITIONAL(BUILD_WIN32, test x$bwin32 = xtrue)
-AM_CONDITIONAL(BUILD_CYGWIN, test x$cygwin = xtrue)
-AM_CONDITIONAL(BUILD_WITH_NO_UNDEFINED, test x$bwin32 = xtrue || test x$cygwin = xtrue)
 
 if test x$bwin32 = xtrue; then
    AC_SEARCH_LIBS([getservbyname],[ws2_32])
@@ -584,6 +688,13 @@ AC_CHECK_SIZEOF(size_t)
 AC_CHECK_SIZEOF(void *)
 AC_CHECK_SIZEOF(off_t)
 
+if test $have_pthread = yes; then
+  AC_CHECK_SIZEOF(pthread_t, , [
+AC_INCLUDES_DEFAULT
+#include <pthread.h>
+])
+fi
+
 AC_CHECK_TYPES([struct in6_addr,
                 struct sockaddr_in6,
                 sa_family_t,
@@ -670,108 +781,8 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],
          [Define to appropriate substitue if compiler doesnt have __func__])])
 ])
 
-# check if we can compile with pthreads
-have_pthread=no
-if test x$bwin32 != xtrue && test "$enable_thread_support" != "no"; then
-  AX_PTHREAD
-  if test x$ax_pthread_ok = xyes; then
-    have_pthread=yes
-    CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-    AC_CHECK_SIZEOF(pthread_t, ,
-       [AC_INCLUDES_DEFAULT()
-        #include <pthread.h> ])
-  fi
-fi
-AM_CONDITIONAL(PTHREAD, [test "$have_pthread" != "no"])
-
-# check if we should compile locking into the library
-if test x$enable_thread_support = xno; then
-   AC_DEFINE(DISABLE_THREAD_SUPPORT, 1,
-	[Define if libevent should not be compiled with thread support])
-fi
-
-# check if we should hard-code the mm functions.
-if test x$enable_malloc_replacement = xno; then
-  AC_DEFINE(DISABLE_MM_REPLACEMENT, 1,
-        [Define if libevent should not allow replacing the mm functions])
-fi
-
-# check if we should hard-code debugging out
-if test x$enable_debug_mode = xno; then
-  AC_DEFINE(DISABLE_DEBUG_MODE, 1,
-        [Define if libevent should build without support for a debug mode])
-fi
-
-# check if we should enable verbose debugging 
-if test x$enable_verbose_debug = xyes; then
-	CFLAGS="$CFLAGS -DUSE_DEBUG"
-fi
-
 # check if we have and should use openssl
 AM_CONDITIONAL(OPENSSL, [test "$enable_openssl" != "no" && test "$have_openssl" = "yes"])
-
-# Add some more warnings which we use in development but not in the
-# released versions.  (Some relevant gcc versions can't handle these.)
-if test x$enable_gcc_warnings != xno && test "$GCC" = "yes"; then
-
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [
-#if !defined(__GNUC__) || (__GNUC__ < 4)
-#error
-#endif])], have_gcc4=yes, have_gcc4=no)
-
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [
-#if !defined(__GNUC__) || (__GNUC__ < 4) || (__GNUC__ == 4 && __GNUC_MINOR__ < 2)
-#error
-#endif])], have_gcc42=yes, have_gcc42=no)
-
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [
-#if !defined(__GNUC__) || (__GNUC__ < 4) || (__GNUC__ == 4 && __GNUC_MINOR__ < 5)
-#error
-#endif])], have_gcc45=yes, have_gcc45=no)
-
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [
-#if !defined(__clang__)
-#error
-#endif])], have_clang=yes, have_clang=no)
-
-  CFLAGS="$CFLAGS -W -Wfloat-equal -Wundef -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wwrite-strings -Wredundant-decls -Wchar-subscripts -Wcomment -Wformat -Wwrite-strings -Wmissing-declarations -Wredundant-decls -Wnested-externs -Wbad-function-cast -Wswitch-enum"
-  if test x$enable_gcc_warnings = xyes; then
-    CFLAGS="$CFLAGS -Werror"
-  fi
-
-  CFLAGS="$CFLAGS -Wno-unused-parameter -Wstrict-aliasing"
-
-  if test x$have_gcc4 = xyes ; then
-    # These warnings break gcc 3.3.5 and work on gcc 4.0.2
-    CFLAGS="$CFLAGS -Winit-self -Wmissing-field-initializers -Wdeclaration-after-statement"
-    #CFLAGS="$CFLAGS -Wold-style-definition"
-  fi
-
-  if test x$have_gcc42 = xyes ; then
-    # These warnings break gcc 4.0.2 and work on gcc 4.2
-    CFLAGS="$CFLAGS -Waddress"
-  fi
-
-  if test x$have_gcc42 = xyes && test x$have_clang = xno; then
-    # These warnings break gcc 4.0.2 and clang, but work on gcc 4.2
-    CFLAGS="$CFLAGS -Wnormalized=id -Woverride-init"
-  fi
-
-  if test x$have_gcc45 = xyes ; then
-    # These warnings work on gcc 4.5
-    CFLAGS="$CFLAGS -Wlogical-op"
-  fi
-
-  if test x$have_clang = xyes; then
-    # Disable the unused-function warnings, because these trigger
-    # for minheap-internal.h related code.
-    CFLAGS="$CFLAGS -Wno-unused-function"
-  fi
-
-##This will break the world on some 64-bit architectures
-# CFLAGS="$CFLAGS -Winline"
-
-fi
 
 LIBEVENT_GC_SECTIONS=
 if test "$GCC" = yes && test "$enable_function_sections" = yes ; then
@@ -846,6 +857,11 @@ if test "$GCC" = yes && test "$enable_function_sections" = yes ; then
 fi
 AC_SUBST([LIBEVENT_GC_SECTIONS])
 
-AM_CONDITIONAL([INSTALL_LIBEVENT], [test "$enable_libevent_install" = "yes"])
+# This must be done after everything else, because many of autoconf's
+# test programs provoke warnings.
+if test $enable_gcc_warnings_are_errors = yes; then
+  CFLAGS="$CFLAGS -Werror"
+  LTCFLAGS="$LTCFLAGS -Werror"
+fi
 
 AC_OUTPUT
