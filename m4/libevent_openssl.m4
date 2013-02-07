@@ -1,7 +1,7 @@
 dnl ######################################################################
 dnl OpenSSL support
 AC_DEFUN([LIBEVENT_OPENSSL], [
-AC_REQUIRE([NTP_PKG_CONFIG])dnl
+AC_REQUIRE([PKG_PROG_PKG_CONFIG])dnl
 
 case "$enable_openssl" in
  yes)
