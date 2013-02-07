@@ -246,7 +246,6 @@ endif
 noinst_HEADERS +=				\
 	WIN32-Code/evconfig-private.h		\
 	WIN32-Code/event2/event-config.h	\
-	WIN32-Code/tree.h			\
 	bufferevent-internal.h			\
 	changelist-internal.h			\
 	defer-internal.h			\

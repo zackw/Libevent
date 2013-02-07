@@ -58,7 +58,6 @@ TAGS
 /stamp-h2
 /libtool
 /doxygen
-/test-driver
 
 # Autotools clutter that can be isolated in its own directory
 /config-aux/libtool.m4
@@ -74,6 +73,7 @@ TAGS
 /config-aux/install-sh
 /config-aux/ltmain.sh
 /config-aux/missing
+/config-aux/test-driver
 
 # Stuff made by our makefiles in subdirectories
 /sample/dns-example
