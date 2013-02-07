@@ -39,7 +39,6 @@
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #ifdef EVENT__HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -61,6 +60,7 @@
 #include "log-internal.h"
 #include "evmap-internal.h"
 #include "evthread-internal.h"
+#include "queue-internal.h"
 
 /*
   signal.c

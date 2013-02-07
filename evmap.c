@@ -36,7 +36,6 @@
 #if !defined(_WIN32) && defined(EVENT__HAVE_SYS_TIME_H)
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _WIN32
@@ -51,6 +50,7 @@
 #include "evmap-internal.h"
 #include "mm-internal.h"
 #include "changelist-internal.h"
+#include "queue-internal.h"
 
 /** An entry for an evmap_io list: notes all the events that want to read or
 	write on a given fd, and the number of each.

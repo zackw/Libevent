@@ -37,6 +37,7 @@ extern "C" {
 #include "event2/event_struct.h"
 #include "util-internal.h"
 #include "defer-internal.h"
+#include "queue-internal.h"
 
 /* Experimental cb flag: "never deferred."  Implementation note:
  * these callbacks may get an inaccurate view of n_del/n_added in their
@@ -46,7 +47,6 @@ extern "C" {
 #ifdef _WIN32
 #include <winsock2.h>
 #endif
-#include <sys/queue.h>
 
 /* Minimum allocation for a chain.  We define this so that we're burning no
  * more than 5% of each allocation on overhead.  It would be nice to lose even

@@ -37,7 +37,6 @@
 #if !defined(_WIN32) && defined(EVENT__HAVE_SYS_TIME_H)
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #ifdef EVENT__HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -68,6 +67,7 @@
 #define HT_NO_CACHE_HASH_VALUES
 #include "ht-internal.h"
 #include "util-internal.h"
+#include "queue-internal.h"
 
 
 #ifdef EVENT__HAVE_WORKING_KQUEUE

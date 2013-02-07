@@ -62,7 +62,9 @@ extern "C" {
 
 #define EVLIST_ALL          0xbf
 
-/* Fix so that people don't have to run with <sys/queue.h> */
+/* FIXME: These duplicate code in keyvalq_struct.h and queue-internal.h,
+   and should never have been exposed in the first place. */
+
 #ifndef TAILQ_ENTRY
 #define EVENT_DEFINED_TQENTRY_
 #define TAILQ_ENTRY(type)						\
@@ -81,7 +83,6 @@ struct name {					\
 }
 #endif
 
-/* Fix so that people don't have to run with <sys/queue.h> */
 #ifndef LIST_ENTRY
 #define EVENT_DEFINED_LISTENTRY_
 #define LIST_ENTRY(type)						\
@@ -156,7 +157,7 @@ TAILQ_HEAD (event_list, event);
 #undef TAILQ_HEAD
 #endif
 
-LIST_HEAD (event_dlist, event); 
+LIST_HEAD (event_dlist, event);
 
 #ifdef EVENT_DEFINED_LISTENTRY_
 #undef LIST_ENTRY

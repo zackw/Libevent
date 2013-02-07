@@ -400,7 +400,7 @@ const char *evutil_socket_error_to_string(int errcode);
  *
  * @{
  */
-#ifdef EVENT__HAVE_TIMERADD
+#if EVENT__HAVE_DECL_TIMERADD
 #define evutil_timeradd(tvp, uvp, vvp) timeradd((tvp), (uvp), (vvp))
 #define evutil_timersub(tvp, uvp, vvp) timersub((tvp), (uvp), (vvp))
 #else
@@ -422,9 +422,9 @@ const char *evutil_socket_error_to_string(int errcode);
 			(vvp)->tv_usec += 1000000;			\
 		}							\
 	} while (0)
-#endif /* !EVENT__HAVE_TIMERADD */
+#endif /* !EVENT__HAVE_DECL_TIMERADD */
 
-#ifdef EVENT__HAVE_TIMERCLEAR
+#if EVENT__HAVE_DECL_TIMERCLEAR
 #define evutil_timerclear(tvp) timerclear(tvp)
 #else
 #define	evutil_timerclear(tvp)	(tvp)->tv_sec = (tvp)->tv_usec = 0
@@ -432,13 +432,15 @@ const char *evutil_socket_error_to_string(int errcode);
 /**@}*/
 
 /** Return true iff the tvp is related to uvp according to the relational
- * operator cmp.  Recognized values for cmp are ==, <=, <, >=, and >. */
+ * operator cmp.  Recognized values for cmp are ==, <=, <, >=, and >.
+ * We define this unconditionally because some system definitions are buggy.
+ */
 #define	evutil_timercmp(tvp, uvp, cmp)					\
 	(((tvp)->tv_sec == (uvp)->tv_sec) ?				\
 	 ((tvp)->tv_usec cmp (uvp)->tv_usec) :				\
 	 ((tvp)->tv_sec cmp (uvp)->tv_sec))
 
-#ifdef EVENT__HAVE_TIMERISSET
+#if EVENT__HAVE_DECL_TIMERISSET
 #define evutil_timerisset(tvp) timerisset(tvp)
 #else
 #define	evutil_timerisset(tvp)	((tvp)->tv_sec || (tvp)->tv_usec)

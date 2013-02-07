@@ -4,27 +4,14 @@
  *   signal-test.c -L/usr/local/lib -levent
  */
 
-#include <sys/types.h>
-
-#include <event2/event-config.h>
-
-#include <sys/stat.h>
-#ifndef _WIN32
-#include <sys/queue.h>
-#include <unistd.h>
-#include <sys/time.h>
-#else
-#include <winsock2.h>
-#include <windows.h>
-#endif
-#include <signal.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-
 #include <event2/event.h>
+#include <stdio.h>
+#include <signal.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winsock2.h>
+#endif
 
 #ifdef EVENT____func__
 #define __func__ EVENT____func__

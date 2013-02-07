@@ -49,9 +49,9 @@
 #include "evthread-internal.h"
 
 /* FIXME remove these ones */
-#include <sys/queue.h>
 #include "event2/event_struct.h"
 #include "event-internal.h"
+#include "queue-internal.h"
 
 #define MAX_CALLS 16
 

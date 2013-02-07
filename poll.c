@@ -35,7 +35,6 @@
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #include <poll.h>
 #include <signal.h>
 #include <limits.h>
@@ -52,6 +51,7 @@
 #include "event2/thread.h"
 #include "evthread-internal.h"
 #include "time-internal.h"
+#include "queue-internal.h"
 
 struct pollidx {
 	int idxplus1;

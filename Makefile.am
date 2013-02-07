@@ -249,7 +249,6 @@ noinst_HEADERS +=				\
 	WIN32-Code/tree.h			\
 	bufferevent-internal.h			\
 	changelist-internal.h			\
-	compat/sys/queue.h			\
 	defer-internal.h			\
 	evbuffer-internal.h			\
 	evconfig-private.h			\
@@ -266,6 +265,7 @@ noinst_HEADERS +=				\
 	log-internal.h				\
 	minheap-internal.h			\
 	mm-internal.h				\
+	queue-internal.h			\
 	ratelim-internal.h			\
 	ratelim-internal.h			\
 	strlcpy-internal.h			\

@@ -35,7 +35,6 @@
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #include <sys/event.h>
 #include <signal.h>
 #include <stdio.h>
@@ -64,6 +63,7 @@
 #include "event2/thread.h"
 #include "evthread-internal.h"
 #include "changelist-internal.h"
+#include "queue-internal.h"
 
 #include "kqueue-internal.h"
 

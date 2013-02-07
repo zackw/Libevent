@@ -41,7 +41,6 @@
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef _WIN32
@@ -50,8 +49,6 @@
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
-
-#include <sys/queue.h>
 
 #include "event2/event.h"
 #include "event2/event_struct.h"
@@ -67,6 +64,7 @@
 #include "util-internal.h"
 #include "log-internal.h"
 #include "mm-internal.h"
+#include "queue-internal.h"
 
 struct evrpc_base *
 evrpc_init(struct evhttp *http_server)

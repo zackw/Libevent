@@ -35,12 +35,12 @@ extern "C" {
 #include "evconfig-private.h"
 
 #include <time.h>
-#include <sys/queue.h>
 #include "event2/event_struct.h"
 #include "minheap-internal.h"
 #include "evsignal-internal.h"
 #include "mm-internal.h"
 #include "defer-internal.h"
+#include "queue-internal.h"
 
 /* map union members back */
 
@@ -343,35 +343,6 @@ struct event_config {
 	enum event_method_feature require_features;
 	enum event_base_config_flag flags;
 };
-
-/* Internal use only: Functions that might be missing from <sys/queue.h> */
-#if defined(EVENT__HAVE_SYS_QUEUE_H) && !defined(EVENT__HAVE_TAILQFOREACH)
-#ifndef TAILQ_FIRST
-#define	TAILQ_FIRST(head)		((head)->tqh_first)
-#endif
-#ifndef TAILQ_END
-#define	TAILQ_END(head)			NULL
-#endif
-#ifndef TAILQ_NEXT
-#define	TAILQ_NEXT(elm, field)		((elm)->field.tqe_next)
-#endif
-
-#ifndef TAILQ_FOREACH
-#define TAILQ_FOREACH(var, head, field)					\
-	for ((var) = TAILQ_FIRST(head);					\
-	     (var) != TAILQ_END(head);					\
-	     (var) = TAILQ_NEXT(var, field))
-#endif
-
-#ifndef TAILQ_INSERT_BEFORE
-#define	TAILQ_INSERT_BEFORE(listelm, elm, field) do {			\
-	(elm)->field.tqe_prev = (listelm)->field.tqe_prev;		\
-	(elm)->field.tqe_next = (listelm);				\
-	*(listelm)->field.tqe_prev = (elm);				\
-	(listelm)->field.tqe_prev = &(elm)->field.tqe_next;		\
-} while (0)
-#endif
-#endif /* TAILQ_FOREACH */
 
 #define N_ACTIVE_CALLBACKS(base)					\
 	((base)->event_count_active)

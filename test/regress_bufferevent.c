@@ -41,7 +41,6 @@
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <sys/wait.h>
@@ -75,10 +74,10 @@
 #include "event2/util.h"
 
 #include "bufferevent-internal.h"
-#include "util-internal.h"
 #ifdef _WIN32
 #include "iocp-internal.h"
 #endif
+#include "queue-internal.h"
 
 #include "regress.h"
 #include "regress_testutils.h"

@@ -55,6 +55,16 @@ struct evrpc_status {
 
 /* the structure below needs to be synchronized with evrpc_req_generic */
 
+/* FIXME: duplicates queue-internal.h */
+#ifndef TAILQ_ENTRY
+#define _EVENT_DEFINED_TAILQ_ENTRY
+#define TAILQ_ENTRY(type)                                               \
+struct {                                                                \
+        struct type *tqe_next;  /* next element */                      \
+        struct type **tqe_prev; /* address of previous next element */  \
+}
+#endif
+
 /* Encapsulates a request */
 struct evrpc {
 	TAILQ_ENTRY(evrpc) next;
@@ -92,6 +102,10 @@ struct evrpc {
 	/* reference for further configuration */
 	struct evrpc_base *base;
 };
+
+#ifdef _EVENT_DEFINED_TAILQ_ENTRY
+#undef TAILQ_ENTRY
+#endif
 
 #ifdef __cplusplus
 }

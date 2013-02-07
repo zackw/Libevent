@@ -238,13 +238,61 @@ dnl very bottom of the file).
 
 LT_INIT
 
+# Checks for header files.
+AC_CHECK_HEADERS([ \
+  arpa/inet.h \
+  ifaddrs.h \
+  mach/mach_time.h \
+  netdb.h \
+  netinet/in.h \
+  netinet/in6.h \
+  netinet/tcp.h \
+  sys/devpoll.h \
+  sys/epoll.h \
+  sys/event.h \
+  sys/eventfd.h \
+  sys/ioctl.h \
+  sys/mman.h \
+  sys/param.h \
+  sys/resource.h \
+  sys/select.h \
+  sys/sendfile.h \
+  sys/socket.h \
+  sys/time.h \
+  sys/timerfd.h \
+  sys/uio.h \
+  sys/wait.h \
+  zlib.h \
+], [], [], [AC_INCLUDES_DEFAULT])
+
+# sys/sysctl.h may need prior inclusion of sys/param.h.
+AC_CHECK_HEADERS(sys/sysctl.h, [], [], [
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+])
+
+# Checks for contents of header files.
+if test "x$ac_cv_header_sys_time_h" = xyes; then
+  AC_CHECK_DECLS([timeradd, timerclear, timerisset], [], [],
+                 [#include <sys/time.h>])
+fi
+
+if test "x$ac_cv_header_sys_sysctl_h" = xyes; then
+  AC_CHECK_DECLS([CTL_KERN, KERN_RANDOM, RANDOM_UUID, KERN_ARND], [], [], [
+  #include <sys/types.h>
+  #ifdef HAVE_SYS_PARAM_H
+  #include <sys/param.h>
+  #endif
+  #include <sys/sysctl.h>
+])
+fi
+
 dnl Checks for libraries.
 AC_SEARCH_LIBS([inet_ntoa], [nsl])
 AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_SEARCH_LIBS([sendfile], [sendfile])
-
-AC_CHECK_HEADERS([zlib.h], [], [], [AC_INCLUDES_DEFAULT()])
 
 if test "x$ac_cv_header_zlib_h" = "xyes"; then
 dnl Determine if we have zlib for regression tests
@@ -276,115 +324,6 @@ AC_SUBST(OPENSSL_LIBADD)
 
 LIBEVENT_OPENSSL
 
-dnl Checks for header files.
-AC_CHECK_HEADERS([ \
-  arpa/inet.h \
-  ifaddrs.h \
-  mach/mach_time.h \
-  netdb.h \
-  netinet/in.h \
-  netinet/in6.h \
-  netinet/tcp.h \
-  sys/devpoll.h \
-  sys/epoll.h \
-  sys/event.h \
-  sys/eventfd.h \
-  sys/ioctl.h \
-  sys/mman.h \
-  sys/param.h \
-  sys/queue.h \
-  sys/resource.h \
-  sys/select.h \
-  sys/sendfile.h \
-  sys/socket.h \
-  sys/time.h \
-  sys/timerfd.h \
-  sys/uio.h \
-  sys/wait.h \
-], [], [], [AC_INCLUDES_DEFAULT])
-
-AC_CHECK_HEADERS(sys/sysctl.h, [], [], [
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
-])
-if test "x$ac_cv_header_sys_queue_h" = "xyes"; then
-	AC_MSG_CHECKING(for TAILQ_FOREACH in sys/queue.h)
-	AC_EGREP_CPP(yes,
-[
-#include <sys/queue.h>
-#ifdef TAILQ_FOREACH
- yes
-#endif
-],	[AC_MSG_RESULT(yes)
-	 AC_DEFINE(HAVE_TAILQFOREACH, 1,
-		[Define if TAILQ_FOREACH is defined in <sys/queue.h>])],
-	AC_MSG_RESULT(no)
-	)
-fi
-
-if test "x$ac_cv_header_sys_time_h" = "xyes"; then
-	AC_MSG_CHECKING(for timeradd in sys/time.h)
-	AC_EGREP_CPP(yes,
-[
-#include <sys/time.h>
-#ifdef timeradd
- yes
-#endif
-],	[ AC_DEFINE(HAVE_TIMERADD, 1,
-		[Define if timeradd is defined in <sys/time.h>])
-	  AC_MSG_RESULT(yes)] ,AC_MSG_RESULT(no)
-)
-fi
-
-if test "x$ac_cv_header_sys_time_h" = "xyes"; then
-	AC_MSG_CHECKING(for timercmp in sys/time.h)
-	AC_EGREP_CPP(yes,
-[
-#include <sys/time.h>
-#ifdef timercmp
- yes
-#endif
-],	[ AC_DEFINE(HAVE_TIMERCMP, 1,
-		[Define if timercmp is defined in <sys/time.h>])
-	  AC_MSG_RESULT(yes)] ,AC_MSG_RESULT(no)
-)
-fi
-
-if test "x$ac_cv_header_sys_time_h" = "xyes"; then
-	AC_MSG_CHECKING(for timerclear in sys/time.h)
-	AC_EGREP_CPP(yes,
-[
-#include <sys/time.h>
-#ifdef timerclear
- yes
-#endif
-],	[ AC_DEFINE(HAVE_TIMERCLEAR, 1,
-		[Define if timerclear is defined in <sys/time.h>])
-	  AC_MSG_RESULT(yes)] ,AC_MSG_RESULT(no)
-)
-fi
-
-if test "x$ac_cv_header_sys_time_h" = "xyes"; then
-	AC_MSG_CHECKING(for timerisset in sys/time.h)
-	AC_EGREP_CPP(yes,
-[
-#include <sys/time.h>
-#ifdef timerisset
- yes
-#endif
-],	[ AC_DEFINE(HAVE_TIMERISSET, 1,
-		[Define if timerisset is defined in <sys/time.h>])
-	  AC_MSG_RESULT(yes)] ,AC_MSG_RESULT(no)
-)
-fi
-
-if test "x$ac_cv_header_sys_sysctl_h" = "xyes"; then
-	AC_CHECK_DECLS([CTL_KERN, KERN_RANDOM, RANDOM_UUID, KERN_ARND], [], [],
-	   [[#include <sys/types.h>
-	     #include <sys/sysctl.h>]]
-	)
-fi
 
 if test x$bwin32 = xtrue; then
    AC_SEARCH_LIBS([getservbyname],[ws2_32])

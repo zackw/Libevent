@@ -59,7 +59,6 @@
 #ifdef EVENT__HAVE_EVENT_PORTS
 
 #include <sys/time.h>
-#include <sys/queue.h>
 #include <errno.h>
 #include <poll.h>
 #include <port.h>
@@ -77,6 +76,7 @@
 #include "log-internal.h"
 #include "evsignal-internal.h"
 #include "evmap-internal.h"
+#include "queue-internal.h"
 
 #define INITIAL_EVENTS_PER_GETN 8
 #define MAX_EVENTS_PER_GETN 4096

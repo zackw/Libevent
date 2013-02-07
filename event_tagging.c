@@ -42,7 +42,6 @@
 #include <sys/ioctl.h>
 #endif
 
-#include <sys/queue.h>
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -65,6 +64,7 @@
 #include "log-internal.h"
 #include "mm-internal.h"
 #include "util-internal.h"
+#include "queue-internal.h"
 
 /*
   Here's our wire format:

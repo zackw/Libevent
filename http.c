@@ -50,8 +50,6 @@
 #include <ws2tcpip.h>
 #endif
 
-#include <sys/queue.h>
-
 #ifdef EVENT__HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -97,6 +95,7 @@
 #include "http-internal.h"
 #include "mm-internal.h"
 #include "bufferevent-internal.h"
+#include "queue-internal.h"
 
 #ifndef EVENT__HAVE_GETNAMEINFO
 #define NI_MAXSERV 32

@@ -38,7 +38,6 @@
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <signal.h>
@@ -66,6 +65,7 @@
 #include "event2/listener.h"
 #include "event2/bufferevent.h"
 #include "log-internal.h"
+#include "queue-internal.h"
 #include "regress.h"
 #include "regress_testutils.h"
 

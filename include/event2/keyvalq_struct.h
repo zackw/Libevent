@@ -31,8 +31,9 @@
 extern "C" {
 #endif
 
-/* Fix so that people don't have to run with <sys/queue.h> */
-/* XXXX This code is duplicated with event_struct.h */
+/* FIXME: These duplicate code in keyvalq_struct.h and queue-internal.h,
+   and should never have been exposed in the first place. */
+
 #ifndef TAILQ_ENTRY
 #define EVENT_DEFINED_TQENTRY_
 #define TAILQ_ENTRY(type)						\

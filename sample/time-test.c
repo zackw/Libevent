@@ -14,7 +14,6 @@
 
 #include <sys/stat.h>
 #ifndef _WIN32
-#include <sys/queue.h>
 #include <unistd.h>
 #endif
 #include <time.h>

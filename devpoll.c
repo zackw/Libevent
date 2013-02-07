@@ -34,7 +34,6 @@
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#include <sys/queue.h>
 #include <sys/devpoll.h>
 #include <signal.h>
 #include <stdio.h>
@@ -52,6 +51,7 @@
 #include "log-internal.h"
 #include "evmap-internal.h"
 #include "evthread-internal.h"
+#include "queue-internal.h"
 
 struct devpollop {
 	struct pollfd *events;
