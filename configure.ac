@@ -693,7 +693,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],
 # check if we can compile with pthreads
 have_pthreads=no
 if test x$bwin32 != xtrue && test "$enable_thread_support" != "no"; then
-  ACX_PTHREAD([
+  AX_PTHREAD([
 	AC_DEFINE(HAVE_PTHREADS, 1,
 		[Define if we have pthreads on this system])
 	have_pthreads=yes])
