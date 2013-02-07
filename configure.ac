@@ -8,7 +8,8 @@ dnl Original version Dug Song <dugsong@monkey.org>
 AC_INIT([libevent],[2.1.2-alpha-dev])
 AC_PREREQ([2.69])
 AC_CONFIG_SRCDIR(event.c)
-AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([config-aux])
+AC_CONFIG_MACRO_DIR([config-aux])
 AC_CONFIG_HEADERS([config.h  evconfig-private.h:evconfig-private.h.in])
 AC_CONFIG_FILES([libevent.pc libevent_openssl.pc libevent_pthreads.pc
                  Makefile])

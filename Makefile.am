@@ -8,7 +8,7 @@
 # '1.9' means that we need automake 1.9 or later (and we do).
 AUTOMAKE_OPTIONS = foreign 1.9 subdir-objects
 
-ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS = -I config-aux --install
 
 # This is the "Release" of the Libevent ABI.  It takes precedence over
 # the VERSION_INFO, so that two versions of Libevent with the same
