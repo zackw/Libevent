@@ -1428,7 +1428,8 @@ static void send_a_byte_cb(evutil_socket_t fd, short what, void *arg)
 {
 	evutil_socket_t *sockp = arg;
 	(void) fd; (void) what;
-	write(*sockp, "A", 1);
+	/* In "hardening" mode, this is the only way to prevent a warning. */
+	if (write(*sockp, "A", 1) != 1) {}
 }
 static void read_not_timeout_cb(evutil_socket_t fd, short what, void *arg)
 {
