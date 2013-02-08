@@ -114,31 +114,29 @@ AM_CONDITIONAL(PTHREAD, [test "$have_pthread" != "no"])
 
 # At least some versions of gcc >=2.95 miscompile the sockaddr code
 # with strict aliasing optimizations on.
-AX_APPEND_COMPILE_FLAGS([-fno-strict-aliasing])
+LIBEVENT_ADD_CFLAGS([-fno-strict-aliasing])
 
 # GCC's "hardening" options (which defend against various overflows)
 if test $enable_gcc_hardening = yes; then
-  hflags="-D_FORTIFY_SOURCE=2 -fwrapv -fPIE -fstack-protector-all"
-  hflags="$hflags -Wstack-protector --param ssp-buffer-size=1"
-  AX_CHECK_COMPILE_FLAG([$hflags],
-    [AX_APPEND_FLAG([$hflags])],
-    [AC_MSG_ERROR([Hardening requested, but not supported by $CC])])
+  LIBEVENT_ADD_CFLAGS([hardening],
+    [-D_FORTIFY_SOURCE=2 -fwrapv -fPIE -fstack-protector-all \
+     -Wstack-protector '--param ssp-buffer-size=1'])
 fi
 
-# Enable basic warnings ...
-AX_APPEND_COMPILE_FLAGS([-Wall])
+# Enable warnings ...
+warnings_flags="-Wall"
 
 # OS X Lion started deprecating the system openssl. Let's just disable
 # all deprecation warnings on OS X.
 case "$host_os" in darwin*)
-    AX_APPEND_COMPILE_FLAGS([-Wno-deprecated-declarations])
+    warnings_flags="$warnings_flags -Wno-deprecated-declarations"
     ;;
 esac
 
 # Add some more warnings which we use in development but not in the
 # released versions.  (Some relevant gcc versions can't handle these.)
 if test $enable_gcc_warnings = yes; then
-  # AX_APPEND_COMPILE_FLAGS doesn't detect all of the situations where
+  # LIBEVENT_ADD_CFLAGS doesn't detect all of the situations where
   # using a warnings switch is unsafe.
   have_gcc4=no
   have_gcc42=no
@@ -175,7 +173,7 @@ if test $enable_gcc_warnings = yes; then
   # These are all known to be unproblematic if supported at all.
   # We'd like to use -Winline but it will break the world on some 64-bit
   # architectures.
-  AX_APPEND_COMPILE_FLAGS([ \
+  warnings_flags="$warnings_flags \
     -W \
     -Wbad-function-cast \
     -Wchar-subscripts \
@@ -192,41 +190,39 @@ if test $enable_gcc_warnings = yes; then
     -Wundef \
     -Wwrite-strings \
     -Wstrict-aliasing \
-\
-    -Wno-unused-parameter \
-  ])
+    -Wno-unused-parameter"
 
   # These warnings work with gcc 4.0.2 and later
   if test $have_gcc4 = yes; then
-    AX_APPEND_COMPILE_FLAGS([ \
+    warnings_flags="$warnings_flags \
       -Winit-self \
       -Wmissing-field-initializers \
-      -Wdeclaration-after-statement \
-    ])
+      -Wdeclaration-after-statement"
   fi
 
   # These warnings work with gcc 4.2 and later
   if test $have_gcc42 = yes; then
-    AX_APPEND_COMPILE_FLAGS([-Waddress])
+    warnings_flags="$warnings_flags -Waddress"
   fi
 
   # These warnings work with gcc 4.2 and later, but not with clang
   # (which tries to be feature-compatible with gcc).
   if test $have_gcc42 = yes && test $have_clang = no; then
-    AX_APPEND_COMPILE_FLAGS([-Wnormalized=id -Woverride-init])
+    warnings_flags="$warnings_flags -Wnormalized=id -Woverride-init"
   fi
 
   # These warnings work with gcc 4.5 and later
   if test $have_gcc45 = yes; then
-    AX_APPEND_COMPILE_FLAGS([-Wlogical-op])
+    warnings_flags="$warnings_flags -Wlogical-op"
   fi
 
   # Disable unused-function warnings for clang, because they trigger
   # for minheap-internal.h related code.
   if test $have_clang = yes; then
-    AX_APPEND_COMPILE_FLAGS([-Wno-unused-function])
+    extra_warnings_flags="$extra_warnings_flags -Wno-unused-function"
   fi
 fi
+LIBEVENT_ADD_CFLAGS([warnings], [$warnings_flags])
 
 # check if we should enable verbose debugging
 if test x$enable_verbose_debug = xyes; then
