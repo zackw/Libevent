@@ -295,18 +295,6 @@ if test "x$ac_cv_header_sys_sysctl_h" = xyes; then
 ])
 fi
 
-AC_MSG_CHECKING(for F_SETFD in fcntl.h)
-AC_EGREP_CPP(yes,
-[
-#define _GNU_SOURCE
-#include <fcntl.h>
-#ifdef F_SETFD
-yes
-#endif
-],	[ AC_DEFINE(HAVE_SETFD, 1,
-	      [Define if F_SETFD is defined in <fcntl.h>])
-	  AC_MSG_RESULT(yes) ], AC_MSG_RESULT(no))
-
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
