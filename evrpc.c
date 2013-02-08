@@ -64,7 +64,6 @@
 #include "util-internal.h"
 #include "log-internal.h"
 #include "mm-internal.h"
-#include "queue-internal.h"
 
 struct evrpc_base *
 evrpc_init(struct evhttp *http_server)
@@ -76,11 +75,11 @@ evrpc_init(struct evhttp *http_server)
 	/* we rely on the tagging sub system */
 	evtag_init();
 
-	TAILQ_INIT(&base->registered_rpcs);
-	TAILQ_INIT(&base->input_hooks);
-	TAILQ_INIT(&base->output_hooks);
+	EVENT__TAILQ_INIT(&base->registered_rpcs);
+	EVENT__TAILQ_INIT(&base->input_hooks);
+	EVENT__TAILQ_INIT(&base->output_hooks);
 
-	TAILQ_INIT(&base->paused_requests);
+	EVENT__TAILQ_INIT(&base->paused_requests);
 
 	base->http_server = http_server;
 
@@ -95,19 +94,19 @@ evrpc_free(struct evrpc_base *base)
 	struct evrpc_hook_ctx *pause;
 	int r;
 
-	while ((rpc = TAILQ_FIRST(&base->registered_rpcs)) != NULL) {
+	while ((rpc = EVENT__TAILQ_FIRST(&base->registered_rpcs)) != NULL) {
 		r = evrpc_unregister_rpc(base, rpc->uri);
 		EVUTIL_ASSERT(r == 0);
 	}
-	while ((pause = TAILQ_FIRST(&base->paused_requests)) != NULL) {
-		TAILQ_REMOVE(&base->paused_requests, pause, next);
+	while ((pause = EVENT__TAILQ_FIRST(&base->paused_requests)) != NULL) {
+		EVENT__TAILQ_REMOVE(&base->paused_requests, pause, next);
 		mm_free(pause);
 	}
-	while ((hook = TAILQ_FIRST(&base->input_hooks)) != NULL) {
+	while ((hook = EVENT__TAILQ_FIRST(&base->input_hooks)) != NULL) {
 		r = evrpc_remove_hook(base, EVRPC_INPUT, hook);
 		EVUTIL_ASSERT(r);
 	}
-	while ((hook = TAILQ_FIRST(&base->output_hooks)) != NULL) {
+	while ((hook = EVENT__TAILQ_FIRST(&base->output_hooks)) != NULL) {
 		r = evrpc_remove_hook(base, EVRPC_OUTPUT, hook);
 		EVUTIL_ASSERT(r);
 	}
@@ -139,7 +138,7 @@ evrpc_add_hook(void *vbase,
 
 	hook->process = cb;
 	hook->process_arg = cb_arg;
-	TAILQ_INSERT_TAIL(head, hook, next);
+	EVENT__TAILQ_INSERT_TAIL(head, hook, next);
 
 	return (hook);
 }
@@ -148,9 +147,9 @@ static int
 evrpc_remove_hook_internal(struct evrpc_hook_list *head, void *handle)
 {
 	struct evrpc_hook *hook = NULL;
-	TAILQ_FOREACH(hook, head, next) {
+	EVENT__TAILQ_FOREACH(hook, head, next) {
 		if (hook == handle) {
-			TAILQ_REMOVE(head, hook, next);
+			EVENT__TAILQ_REMOVE(head, hook, next);
 			mm_free(hook);
 			return (1);
 		}
@@ -187,7 +186,7 @@ evrpc_process_hooks(struct evrpc_hook_list *head, void *ctx,
     struct evhttp_request *req, struct evbuffer *evbuf)
 {
 	struct evrpc_hook *hook;
-	TAILQ_FOREACH(hook, head, next) {
+	EVENT__TAILQ_FOREACH(hook, head, next) {
 		int res = hook->process(ctx, req, evbuf, hook->process_arg);
 		if (res != EVRPC_CONTINUE)
 			return (res);
@@ -232,7 +231,7 @@ evrpc_register_rpc(struct evrpc_base *base, struct evrpc *rpc,
 	rpc->cb = cb;
 	rpc->cb_arg = cb_arg;
 
-	TAILQ_INSERT_TAIL(&base->registered_rpcs, rpc, next);
+	EVENT__TAILQ_INSERT_TAIL(&base->registered_rpcs, rpc, next);
 
 	evhttp_set_cb(base->http_server,
 	    constructed_uri,
@@ -252,7 +251,7 @@ evrpc_unregister_rpc(struct evrpc_base *base, const char *name)
 	int r;
 
 	/* find the right rpc; linear search might be slow */
-	TAILQ_FOREACH(rpc, &base->registered_rpcs, next) {
+	EVENT__TAILQ_FOREACH(rpc, &base->registered_rpcs, next) {
 		if (strcmp(rpc->uri, name) == 0)
 			break;
 	}
@@ -260,7 +259,7 @@ evrpc_unregister_rpc(struct evrpc_base *base, const char *name)
 		/* We did not find an RPC with this name */
 		return (-1);
 	}
-	TAILQ_REMOVE(&base->registered_rpcs, rpc, next);
+	EVENT__TAILQ_REMOVE(&base->registered_rpcs, rpc, next);
 
 	registered_uri = evrpc_construct_uri(name);
 
@@ -297,7 +296,7 @@ evrpc_request_cb(struct evhttp_request *req, void *arg)
 	rpc_state->http_req = req;
 	rpc_state->rpc_data = NULL;
 
-	if (TAILQ_FIRST(&rpc->base->input_hooks) != NULL) {
+	if (EVENT__TAILQ_FIRST(&rpc->base->input_hooks) != NULL) {
 		int hook_res;
 
 		evrpc_hook_associate_meta_(&rpc_state->hook_meta, req->evcon);
@@ -423,7 +422,7 @@ evrpc_request_done(struct evrpc_req_generic *rpc_state)
 	/* serialize the reply */
 	rpc->reply_marshal(rpc_state->rpc_data, rpc_state->reply);
 
-	if (TAILQ_FIRST(&rpc->base->output_hooks) != NULL) {
+	if (EVENT__TAILQ_FIRST(&rpc->base->output_hooks) != NULL) {
 		int hook_res;
 
 		evrpc_hook_associate_meta_(&rpc_state->hook_meta, req->evcon);
@@ -512,13 +511,13 @@ evrpc_pool_new(struct event_base *base)
 	if (pool == NULL)
 		return (NULL);
 
-	TAILQ_INIT(&pool->connections);
-	TAILQ_INIT(&pool->requests);
+	EVENT__TAILQ_INIT(&pool->connections);
+	EVENT__TAILQ_INIT(&pool->requests);
 
-	TAILQ_INIT(&pool->paused_requests);
+	EVENT__TAILQ_INIT(&pool->paused_requests);
 
-	TAILQ_INIT(&pool->input_hooks);
-	TAILQ_INIT(&pool->output_hooks);
+	EVENT__TAILQ_INIT(&pool->input_hooks);
+	EVENT__TAILQ_INIT(&pool->output_hooks);
 
 	pool->base = base;
 	pool->timeout = -1;
@@ -544,27 +543,27 @@ evrpc_pool_free(struct evrpc_pool *pool)
 	struct evrpc_hook *hook;
 	int r;
 
-	while ((request = TAILQ_FIRST(&pool->requests)) != NULL) {
-		TAILQ_REMOVE(&pool->requests, request, next);
+	while ((request = EVENT__TAILQ_FIRST(&pool->requests)) != NULL) {
+		EVENT__TAILQ_REMOVE(&pool->requests, request, next);
 		evrpc_request_wrapper_free(request);
 	}
 
-	while ((pause = TAILQ_FIRST(&pool->paused_requests)) != NULL) {
-		TAILQ_REMOVE(&pool->paused_requests, pause, next);
+	while ((pause = EVENT__TAILQ_FIRST(&pool->paused_requests)) != NULL) {
+		EVENT__TAILQ_REMOVE(&pool->paused_requests, pause, next);
 		mm_free(pause);
 	}
 
-	while ((connection = TAILQ_FIRST(&pool->connections)) != NULL) {
-		TAILQ_REMOVE(&pool->connections, connection, next);
+	while ((connection = EVENT__TAILQ_FIRST(&pool->connections)) != NULL) {
+		EVENT__TAILQ_REMOVE(&pool->connections, connection, next);
 		evhttp_connection_free(connection);
 	}
 
-	while ((hook = TAILQ_FIRST(&pool->input_hooks)) != NULL) {
+	while ((hook = EVENT__TAILQ_FIRST(&pool->input_hooks)) != NULL) {
 		r = evrpc_remove_hook(pool, EVRPC_INPUT, hook);
 		EVUTIL_ASSERT(r);
 	}
 
-	while ((hook = TAILQ_FIRST(&pool->output_hooks)) != NULL) {
+	while ((hook = EVENT__TAILQ_FIRST(&pool->output_hooks)) != NULL) {
 		r = evrpc_remove_hook(pool, EVRPC_OUTPUT, hook);
 		EVUTIL_ASSERT(r);
 	}
@@ -582,7 +581,7 @@ evrpc_pool_add_connection(struct evrpc_pool *pool,
     struct evhttp_connection *connection)
 {
 	EVUTIL_ASSERT(connection->http_server == NULL);
-	TAILQ_INSERT_TAIL(&pool->connections, connection, next);
+	EVENT__TAILQ_INSERT_TAIL(&pool->connections, connection, next);
 
 	/*
 	 * associate an event base with this connection
@@ -602,10 +601,10 @@ evrpc_pool_add_connection(struct evrpc_pool *pool,
 	 * connections.
 	 */
 
-	if (TAILQ_FIRST(&pool->requests) != NULL) {
+	if (EVENT__TAILQ_FIRST(&pool->requests) != NULL) {
 		struct evrpc_request_wrapper *request =
-		    TAILQ_FIRST(&pool->requests);
-		TAILQ_REMOVE(&pool->requests, request, next);
+		    EVENT__TAILQ_FIRST(&pool->requests);
+		EVENT__TAILQ_REMOVE(&pool->requests, request, next);
 		evrpc_schedule_request(connection, request);
 	}
 }
@@ -614,14 +613,14 @@ void
 evrpc_pool_remove_connection(struct evrpc_pool *pool,
     struct evhttp_connection *connection)
 {
-	TAILQ_REMOVE(&pool->connections, connection, next);
+	EVENT__TAILQ_REMOVE(&pool->connections, connection, next);
 }
 
 void
 evrpc_pool_set_timeout(struct evrpc_pool *pool, int timeout_in_secs)
 {
 	struct evhttp_connection *evcon;
-	TAILQ_FOREACH(evcon, &pool->connections, next) {
+	EVENT__TAILQ_FOREACH(evcon, &pool->connections, next) {
 		evhttp_connection_set_timeout(evcon, timeout_in_secs);
 	}
 	pool->timeout = timeout_in_secs;
@@ -639,8 +638,8 @@ static struct evhttp_connection *
 evrpc_pool_find_connection(struct evrpc_pool *pool)
 {
 	struct evhttp_connection *connection;
-	TAILQ_FOREACH(connection, &pool->connections, next) {
-		if (TAILQ_FIRST(&connection->requests) == NULL)
+	EVENT__TAILQ_FOREACH(connection, &pool->connections, next) {
+		if (EVENT__TAILQ_FIRST(&connection->requests) == NULL)
 			return (connection);
 	}
 
@@ -676,7 +675,7 @@ evrpc_schedule_request(struct evhttp_connection *connection,
 	/* if we get paused we also need to know the request */
 	ctx->req = req;
 
-	if (TAILQ_FIRST(&pool->output_hooks) != NULL) {
+	if (EVENT__TAILQ_FIRST(&pool->output_hooks) != NULL) {
 		int hook_res;
 
 		evrpc_hook_associate_meta_(&ctx->hook_meta, connection);
@@ -772,7 +771,7 @@ evrpc_pause_request(void *vbase, void *ctx,
 	pause->ctx = ctx;
 	pause->cb = cb;
 
-	TAILQ_INSERT_TAIL(&base->pause_requests, pause, next);
+	EVENT__TAILQ_INSERT_TAIL(&base->pause_requests, pause, next);
 	return (0);
 }
 
@@ -783,7 +782,7 @@ evrpc_resume_request(void *vbase, void *ctx, enum EVRPC_HOOK_RESULT res)
 	struct evrpc_pause_list *head = &base->pause_requests;
 	struct evrpc_hook_ctx *pause;
 
-	TAILQ_FOREACH(pause, head, next) {
+	EVENT__TAILQ_FOREACH(pause, head, next) {
 		if (pause->ctx == ctx)
 			break;
 	}
@@ -792,7 +791,7 @@ evrpc_resume_request(void *vbase, void *ctx, enum EVRPC_HOOK_RESULT res)
 		return (-1);
 
 	(*pause->cb)(pause->ctx, res);
-	TAILQ_REMOVE(head, pause, next);
+	EVENT__TAILQ_REMOVE(head, pause, next);
 	mm_free(pause);
 	return (0);
 }
@@ -806,13 +805,13 @@ evrpc_make_request(struct evrpc_request_wrapper *ctx)
 	evtimer_assign(&ctx->ev_timeout, pool->base, evrpc_request_timeout, ctx);
 
 	/* we better have some available connections on the pool */
-	EVUTIL_ASSERT(TAILQ_FIRST(&pool->connections) != NULL);
+	EVUTIL_ASSERT(EVENT__TAILQ_FIRST(&pool->connections) != NULL);
 
 	/*
 	 * if no connection is available, we queue the request on the pool,
 	 * the next time a connection is empty, the rpc will be send on that.
 	 */
-	TAILQ_INSERT_TAIL(&pool->requests, ctx, next);
+	EVENT__TAILQ_INSERT_TAIL(&pool->requests, ctx, next);
 
 	evrpc_pool_schedule(pool);
 
@@ -875,7 +874,7 @@ evrpc_reply_done(struct evhttp_request *req, void *arg)
 		return;
 	}
 
-	if (TAILQ_FIRST(&pool->input_hooks) != NULL) {
+	if (EVENT__TAILQ_FIRST(&pool->input_hooks) != NULL) {
 		evrpc_hook_associate_meta_(&ctx->hook_meta, ctx->evcon);
 
 		/* apply hooks to the incoming request */
@@ -955,7 +954,7 @@ evrpc_reply_done_closure(void *arg, enum EVRPC_HOOK_RESULT hook_res)
 static void
 evrpc_pool_schedule(struct evrpc_pool *pool)
 {
-	struct evrpc_request_wrapper *ctx = TAILQ_FIRST(&pool->requests);
+	struct evrpc_request_wrapper *ctx = EVENT__TAILQ_FIRST(&pool->requests);
 	struct evhttp_connection *evcon;
 
 	/* if no requests are pending, we have no work */
@@ -963,7 +962,7 @@ evrpc_pool_schedule(struct evrpc_pool *pool)
 		return;
 
 	if ((evcon = evrpc_pool_find_connection(pool)) != NULL) {
-		TAILQ_REMOVE(&pool->requests, ctx, next);
+		EVENT__TAILQ_REMOVE(&pool->requests, ctx, next);
 		evrpc_schedule_request(evcon, ctx);
 	}
 }
@@ -988,8 +987,8 @@ evrpc_meta_data_free(struct evrpc_meta_list *meta_data)
 	struct evrpc_meta *entry;
 	EVUTIL_ASSERT(meta_data != NULL);
 
-	while ((entry = TAILQ_FIRST(meta_data)) != NULL) {
-		TAILQ_REMOVE(meta_data, entry, next);
+	while ((entry = EVENT__TAILQ_FIRST(meta_data)) != NULL) {
+		EVENT__TAILQ_REMOVE(meta_data, entry, next);
 		mm_free(entry->key);
 		mm_free(entry->data);
 		mm_free(entry);
@@ -1003,7 +1002,7 @@ evrpc_hook_meta_new_(void)
 	ctx = mm_malloc(sizeof(struct evrpc_hook_meta));
 	EVUTIL_ASSERT(ctx != NULL);
 
-	TAILQ_INIT(&ctx->meta_data);
+	EVENT__TAILQ_INIT(&ctx->meta_data);
 	ctx->evcon = NULL;
 
 	return (ctx);
@@ -1047,7 +1046,7 @@ evrpc_hook_add_meta(void *ctx, const char *key,
 	EVUTIL_ASSERT(meta->data != NULL);
 	memcpy(meta->data, data, data_size);
 
-	TAILQ_INSERT_TAIL(&store->meta_data, meta, next);
+	EVENT__TAILQ_INSERT_TAIL(&store->meta_data, meta, next);
 }
 
 int
@@ -1059,7 +1058,7 @@ evrpc_hook_find_meta(void *ctx, const char *key, void **data, size_t *data_size)
 	if (req->hook_meta == NULL)
 		return (-1);
 
-	TAILQ_FOREACH(meta, &req->hook_meta->meta_data, next) {
+	EVENT__TAILQ_FOREACH(meta, &req->hook_meta->meta_data, next) {
 		if (strcmp(meta->key, key) == 0) {
 			*data = meta->data;
 			*data_size = meta->data_size;

@@ -64,7 +64,6 @@
 #include "event2/rpc_struct.h"
 #include "event2/tag.h"
 #include "log-internal.h"
-#include "queue-internal.h"
 
 #include "regress.gen.h"
 

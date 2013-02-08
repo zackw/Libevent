@@ -353,7 +353,7 @@ struct evdns_base {
 
 	struct search_state *global_search_state;
 
-	TAILQ_HEAD(hosts_list, hosts_entry) hostsdb;
+	EVENT__TAILQ_HEAD(hosts_list, hosts_entry) hostsdb;
 
 #ifndef EVENT__DISABLE_THREAD_SUPPORT
 	void *lock;
@@ -361,7 +361,7 @@ struct evdns_base {
 };
 
 struct hosts_entry {
-	TAILQ_ENTRY(hosts_entry) next;
+	EVENT__TAILQ_ENTRY(hosts_entry) next;
 	union {
 		struct sockaddr sa;
 		struct sockaddr_in sin;
@@ -3875,7 +3875,7 @@ evdns_base_new(struct event_base *event_base, int initialize_nameservers)
 	base->global_nameserver_probe_initial_timeout.tv_sec = 10;
 	base->global_nameserver_probe_initial_timeout.tv_usec = 0;
 
-	TAILQ_INIT(&base->hostsdb);
+	EVENT__TAILQ_INIT(&base->hostsdb);
 
 	if (initialize_nameservers) {
 		int r;
@@ -3984,8 +3984,8 @@ evdns_base_free_and_unlock(struct evdns_base *base, int fail_requests)
 
 	{
 		struct hosts_entry *victim;
-		while ((victim = TAILQ_FIRST(&base->hostsdb))) {
-			TAILQ_REMOVE(&base->hostsdb, victim, next);
+		while ((victim = EVENT__TAILQ_FIRST(&base->hostsdb))) {
+			EVENT__TAILQ_REMOVE(&base->hostsdb, victim, next);
 			mm_free(victim);
 		}
 	}
@@ -4060,7 +4060,7 @@ evdns_base_parse_hosts_line(struct evdns_base *base, char *line)
 		memcpy(he->hostname, hostname, namelen+1);
 		he->addrlen = socklen;
 
-		TAILQ_INSERT_TAIL(&base->hostsdb, he, next);
+		EVENT__TAILQ_INSERT_TAIL(&base->hostsdb, he, next);
 
 		if (hash)
 			return 0;
@@ -4465,11 +4465,11 @@ find_hosts_entry(struct evdns_base *base, const char *hostname,
 	struct hosts_entry *e;
 
 	if (find_after)
-		e = TAILQ_NEXT(find_after, next);
+		e = EVENT__TAILQ_NEXT(find_after, next);
 	else
-		e = TAILQ_FIRST(&base->hostsdb);
+		e = EVENT__TAILQ_FIRST(&base->hostsdb);
 
-	for (; e; e = TAILQ_NEXT(e, next)) {
+	for (; e; e = EVENT__TAILQ_NEXT(e, next)) {
 		if (!evutil_ascii_strcasecmp(e->hostname, hostname))
 			return e;
 	}

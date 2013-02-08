@@ -35,7 +35,7 @@ struct evrpc_request_wrapper;
 #define EVRPC_URI_PREFIX "/.rpc."
 
 struct evrpc_hook {
-	TAILQ_ENTRY(evrpc_hook) next;
+	EVENT__TAILQ_ENTRY(evrpc_hook) next;
 
 	/* returns EVRPC_TERMINATE; if the rpc should be aborted.
 	 * a hook is is allowed to rewrite the evbuffer
@@ -45,7 +45,7 @@ struct evrpc_hook {
 	void *process_arg;
 };
 
-TAILQ_HEAD(evrpc_hook_list, evrpc_hook);
+EVENT__TAILQ_HEAD(evrpc_hook_list, evrpc_hook);
 
 /*
  * this is shared between the base and the pool, so that we can reuse
@@ -54,7 +54,7 @@ TAILQ_HEAD(evrpc_hook_list, evrpc_hook);
  */
 
 struct evrpc_hook_ctx;
-TAILQ_HEAD(evrpc_pause_list, evrpc_hook_ctx);
+EVENT__TAILQ_HEAD(evrpc_pause_list, evrpc_hook_ctx);
 
 struct evrpc_hooks_ {
 	/* hooks for processing outbound and inbound rpcs */
@@ -75,7 +75,7 @@ struct evrpc_base {
 	struct evhttp* http_server;
 
 	/* a list of all RPCs registered with us */
-	TAILQ_HEAD(evrpc_list, evrpc) registered_rpcs;
+	EVENT__TAILQ_HEAD(evrpc_list, evrpc) registered_rpcs;
 };
 
 struct evrpc_req_generic;
@@ -91,25 +91,25 @@ struct evrpc_pool {
 
 	int timeout;
 
-	TAILQ_HEAD(evrpc_requestq, evrpc_request_wrapper) (requests);
+	EVENT__TAILQ_HEAD(evrpc_requestq, evrpc_request_wrapper) (requests);
 };
 
 struct evrpc_hook_ctx {
-	TAILQ_ENTRY(evrpc_hook_ctx) next;
+	EVENT__TAILQ_ENTRY(evrpc_hook_ctx) next;
 
 	void *ctx;
 	void (*cb)(void *, enum EVRPC_HOOK_RESULT);
 };
 
 struct evrpc_meta {
-	TAILQ_ENTRY(evrpc_meta) next;
+	EVENT__TAILQ_ENTRY(evrpc_meta) next;
 	char *key;
 
 	void *data;
 	size_t data_size;
 };
 
-TAILQ_HEAD(evrpc_meta_list, evrpc_meta);
+EVENT__TAILQ_HEAD(evrpc_meta_list, evrpc_meta);
 
 struct evrpc_hook_meta {
 	struct evrpc_meta_list meta_data;
@@ -167,7 +167,7 @@ struct evrpc_request_wrapper {
 	 */
 	struct evrpc_hook_meta *hook_meta;
 
-	TAILQ_ENTRY(evrpc_request_wrapper) next;
+	EVENT__TAILQ_ENTRY(evrpc_request_wrapper) next;
 
 	/* pool on which this rpc request is being made */
 	struct evrpc_pool *pool;

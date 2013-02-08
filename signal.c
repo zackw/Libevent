@@ -60,7 +60,6 @@
 #include "log-internal.h"
 #include "evmap-internal.h"
 #include "evthread-internal.h"
-#include "queue-internal.h"
 
 /*
   signal.c

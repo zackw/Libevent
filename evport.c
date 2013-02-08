@@ -76,7 +76,6 @@
 #include "log-internal.h"
 #include "evsignal-internal.h"
 #include "evmap-internal.h"
-#include "queue-internal.h"
 
 #define INITIAL_EVENTS_PER_GETN 8
 #define MAX_EVENTS_PER_GETN 4096

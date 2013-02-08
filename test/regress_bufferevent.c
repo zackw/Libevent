@@ -77,7 +77,6 @@
 #ifdef _WIN32
 #include "iocp-internal.h"
 #endif
-#include "queue-internal.h"
 
 #include "regress.h"
 #include "regress_testutils.h"

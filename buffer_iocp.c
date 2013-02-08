@@ -157,7 +157,7 @@ evbuffer_overlapped_new_(evutil_socket_t fd)
 	if (!evo)
 		return NULL;
 
-	LIST_INIT(&evo->buffer.callbacks);
+	EVENT__LIST_INIT(&evo->buffer.callbacks);
 	evo->buffer.refcnt = 1;
 	evo->buffer.last_with_datap = &evo->buffer.first;
 

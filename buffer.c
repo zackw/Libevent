@@ -353,7 +353,7 @@ evbuffer_new(void)
 	if (buffer == NULL)
 		return (NULL);
 
-	LIST_INIT(&buffer->callbacks);
+	EVENT__LIST_INIT(&buffer->callbacks);
 	buffer->refcnt = 1;
 	buffer->last_with_datap = &buffer->first;
 
@@ -463,7 +463,7 @@ evbuffer_run_callbacks(struct evbuffer *buffer, int running_deferred)
 
 	ASSERT_EVBUFFER_LOCKED(buffer);
 
-	if (LIST_EMPTY(&buffer->callbacks)) {
+	if (EVENT__LIST_EMPTY(&buffer->callbacks)) {
 		buffer->n_add_for_cb = buffer->n_del_for_cb = 0;
 		return;
 	}
@@ -478,12 +478,12 @@ evbuffer_run_callbacks(struct evbuffer *buffer, int running_deferred)
 		buffer->n_add_for_cb = 0;
 		buffer->n_del_for_cb = 0;
 	}
-	for (cbent = LIST_FIRST(&buffer->callbacks);
-	     cbent != LIST_END(&buffer->callbacks);
+	for (cbent = EVENT__LIST_FIRST(&buffer->callbacks);
+	     cbent != EVENT__LIST_END(&buffer->callbacks);
 	     cbent = next) {
 		/* Get the 'next' pointer now in case this callback decides
 		 * to remove itself or something. */
-		next = LIST_NEXT(cbent, next);
+		next = EVENT__LIST_NEXT(cbent, next);
 
 		if ((cbent->flags & mask) != masked_val)
 			continue;
@@ -499,7 +499,7 @@ evbuffer_run_callbacks(struct evbuffer *buffer, int running_deferred)
 void
 evbuffer_invoke_callbacks_(struct evbuffer *buffer)
 {
-	if (LIST_EMPTY(&buffer->callbacks)) {
+	if (EVENT__LIST_EMPTY(&buffer->callbacks)) {
 		buffer->n_add_for_cb = buffer->n_del_for_cb = 0;
 		return;
 	}
@@ -537,8 +537,8 @@ evbuffer_remove_all_callbacks(struct evbuffer *buffer)
 {
 	struct evbuffer_cb_entry *cbent;
 
-	while ((cbent = LIST_FIRST(&buffer->callbacks))) {
-		LIST_REMOVE(cbent, next);
+	while ((cbent = EVENT__LIST_FIRST(&buffer->callbacks))) {
+		EVENT__LIST_REMOVE(cbent, next);
 		mm_free(cbent);
 	}
 }
@@ -3211,7 +3211,7 @@ evbuffer_setcb(struct evbuffer *buffer, evbuffer_cb cb, void *cbarg)
 {
 	EVBUFFER_LOCK(buffer);
 
-	if (!LIST_EMPTY(&buffer->callbacks))
+	if (!EVENT__LIST_EMPTY(&buffer->callbacks))
 		evbuffer_remove_all_callbacks(buffer);
 
 	if (cb) {
@@ -3233,7 +3233,7 @@ evbuffer_add_cb(struct evbuffer *buffer, evbuffer_cb_func cb, void *cbarg)
 	e->cb.cb_func = cb;
 	e->cbarg = cbarg;
 	e->flags = EVBUFFER_CB_ENABLED;
-	LIST_INSERT_HEAD(&buffer->callbacks, e, next);
+	EVENT__LIST_INSERT_HEAD(&buffer->callbacks, e, next);
 	EVBUFFER_UNLOCK(buffer);
 	return e;
 }
@@ -3243,7 +3243,7 @@ evbuffer_remove_cb_entry(struct evbuffer *buffer,
 			 struct evbuffer_cb_entry *ent)
 {
 	EVBUFFER_LOCK(buffer);
-	LIST_REMOVE(ent, next);
+	EVENT__LIST_REMOVE(ent, next);
 	EVBUFFER_UNLOCK(buffer);
 	mm_free(ent);
 	return 0;
@@ -3255,7 +3255,7 @@ evbuffer_remove_cb(struct evbuffer *buffer, evbuffer_cb_func cb, void *cbarg)
 	struct evbuffer_cb_entry *cbent;
 	int result = -1;
 	EVBUFFER_LOCK(buffer);
-	LIST_FOREACH(cbent, &buffer->callbacks, next) {
+	EVENT__LIST_FOREACH(cbent, &buffer->callbacks, next) {
 		if (cb == cbent->cb.cb_func && cbarg == cbent->cbarg) {
 			result = evbuffer_remove_cb_entry(buffer, cbent);
 			goto done;

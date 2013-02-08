@@ -40,7 +40,6 @@ extern "C" {
 #include "evsignal-internal.h"
 #include "mm-internal.h"
 #include "defer-internal.h"
-#include "queue-internal.h"
 
 /* map union members back */
 
@@ -177,11 +176,11 @@ extern int event_debug_mode_on_;
 #define EVENT_DEBUG_MODE_IS_ON() (0)
 #endif
 
-TAILQ_HEAD(evcallback_list, event_callback);
+EVENT__TAILQ_HEAD(evcallback_list, event_callback);
 
 /* Sets up an event for processing once */
 struct event_once {
-	LIST_ENTRY(event_once) next_once;
+	EVENT__LIST_ENTRY(event_once) next_once;
 	struct event ev;
 
 	void (*cb)(evutil_socket_t, short, void *);
@@ -321,12 +320,12 @@ struct event_base {
 	struct evutil_weakrand_state weakrand_seed;
 
 	/** List of event_onces that have not yet fired. */
-	LIST_HEAD(once_event_list, event_once) once_events;
+	EVENT__LIST_HEAD(once_event_list, event_once) once_events;
 
 };
 
 struct event_config_entry {
-	TAILQ_ENTRY(event_config_entry) next;
+	EVENT__TAILQ_ENTRY(event_config_entry) next;
 
 	const char *avoid_method;
 };
@@ -334,7 +333,7 @@ struct event_config_entry {
 /** Internal structure: describes the configuration we want for an event_base
  * that we're about to allocate. */
 struct event_config {
-	TAILQ_HEAD(event_configq, event_config_entry) entries;
+	EVENT__TAILQ_HEAD(event_configq, event_config_entry) entries;
 
 	int n_cpus_hint;
 	struct timeval max_dispatch_interval;

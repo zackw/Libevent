@@ -150,30 +150,30 @@ extern "C" {
  */
 #define EVUTIL_ASSERT_LIST_OK(dlist, type, field) do {			\
 		struct type *elm1, *elm2, **nextp;			\
-		if (LIST_EMPTY((dlist)))				\
+		if (EVENT__LIST_EMPTY((dlist)))				\
 			break;						\
 									\
 		/* Check list for circularity using Floyd's */		\
 		/* 'Tortoise and Hare' algorithm */			\
-		elm1 = LIST_FIRST((dlist));				\
-		elm2 = LIST_NEXT(elm1, field);				\
+		elm1 = EVENT__LIST_FIRST((dlist));			\
+		elm2 = EVENT__LIST_NEXT(elm1, field);			\
 		while (elm1 && elm2) {					\
 			EVUTIL_ASSERT(elm1 != elm2);			\
-			elm1 = LIST_NEXT(elm1, field);			\
-			elm2 = LIST_NEXT(elm2, field);			\
+			elm1 = EVENT__LIST_NEXT(elm1, field);		\
+			elm2 = EVENT__LIST_NEXT(elm2, field);		\
 			if (!elm2)					\
 				break;					\
 			EVUTIL_ASSERT(elm1 != elm2);			\
-			elm2 = LIST_NEXT(elm2, field);			\
+			elm2 = EVENT__LIST_NEXT(elm2, field);		\
 		}							\
 									\
 		/* Now check next and prev pointers for consistency. */ \
-		nextp = &LIST_FIRST((dlist));				\
-		elm1 = LIST_FIRST((dlist));				\
+		nextp = &EVENT__LIST_FIRST((dlist));			\
+		elm1 = EVENT__LIST_FIRST((dlist));			\
 		while (elm1) {						\
 			EVUTIL_ASSERT(*nextp == elm1);			\
 			EVUTIL_ASSERT(nextp == elm1->field.le_prev);	\
-			nextp = &LIST_NEXT(elm1, field);		\
+			nextp = &EVENT__LIST_NEXT(elm1, field);		\
 			elm1 = *nextp;					\
 		}							\
 	} while (0)
@@ -186,30 +186,30 @@ extern "C" {
  */
 #define EVUTIL_ASSERT_TAILQ_OK(tailq, type, field) do {			\
 		struct type *elm1, *elm2, **nextp;			\
-		if (TAILQ_EMPTY((tailq)))				\
+		if (EVENT__TAILQ_EMPTY((tailq)))				\
 			break;						\
 									\
 		/* Check list for circularity using Floyd's */		\
 		/* 'Tortoise and Hare' algorithm */			\
-		elm1 = TAILQ_FIRST((tailq));				\
-		elm2 = TAILQ_NEXT(elm1, field);				\
+		elm1 = EVENT__TAILQ_FIRST((tailq));				\
+		elm2 = EVENT__TAILQ_NEXT(elm1, field);				\
 		while (elm1 && elm2) {					\
 			EVUTIL_ASSERT(elm1 != elm2);			\
-			elm1 = TAILQ_NEXT(elm1, field);			\
-			elm2 = TAILQ_NEXT(elm2, field);			\
+			elm1 = EVENT__TAILQ_NEXT(elm1, field);			\
+			elm2 = EVENT__TAILQ_NEXT(elm2, field);			\
 			if (!elm2)					\
 				break;					\
 			EVUTIL_ASSERT(elm1 != elm2);			\
-			elm2 = TAILQ_NEXT(elm2, field);			\
+			elm2 = EVENT__TAILQ_NEXT(elm2, field);			\
 		}							\
 									\
 		/* Now check next and prev pointers for consistency. */ \
-		nextp = &TAILQ_FIRST((tailq));				\
-		elm1 = TAILQ_FIRST((tailq));				\
+		nextp = &EVENT__TAILQ_FIRST((tailq));				\
+		elm1 = EVENT__TAILQ_FIRST((tailq));				\
 		while (elm1) {						\
 			EVUTIL_ASSERT(*nextp == elm1);			\
 			EVUTIL_ASSERT(nextp == elm1->field.tqe_prev);	\
-			nextp = &TAILQ_NEXT(elm1, field);		\
+			nextp = &EVENT__TAILQ_NEXT(elm1, field);		\
 			elm1 = *nextp;					\
 		}							\
 		EVUTIL_ASSERT(nextp == (tailq)->tqh_last);		\

@@ -59,7 +59,6 @@
 #include "bufferevent-internal.h"
 #include "util-internal.h"
 #include "iocp-internal.h"
-#include "queue-internal.h"
 
 #ifndef SO_UPDATE_CONNECT_CONTEXT
 /* Mingw is sometimes missing this */

@@ -63,7 +63,6 @@
 #include "event2/thread.h"
 #include "evthread-internal.h"
 #include "changelist-internal.h"
-#include "queue-internal.h"
 
 #include "kqueue-internal.h"
 

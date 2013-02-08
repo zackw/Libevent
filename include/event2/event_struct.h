@@ -52,6 +52,10 @@ extern "C" {
 /* For evkeyvalq */
 #include <event2/keyvalq_struct.h>
 
+/* For EVENT__LIST_ENTRY, EVENT__LIST_HEAD,
+       EVENT__TAILQ_ENTRY, EVENT__TAILQ_HEAD */
+#include <event2/qutil.h>
+
 #define EVLIST_TIMEOUT	    0x01
 #define EVLIST_INSERTED	    0x02
 #define EVLIST_SIGNAL	    0x04
@@ -62,46 +66,8 @@ extern "C" {
 
 #define EVLIST_ALL          0xbf
 
-/* FIXME: These duplicate code in keyvalq_struct.h and queue-internal.h,
-   and should never have been exposed in the first place. */
-
-#ifndef TAILQ_ENTRY
-#define EVENT_DEFINED_TQENTRY_
-#define TAILQ_ENTRY(type)						\
-struct {								\
-	struct type *tqe_next;	/* next element */			\
-	struct type **tqe_prev;	/* address of previous next element */	\
-}
-#endif /* !TAILQ_ENTRY */
-
-#ifndef TAILQ_HEAD
-#define EVENT_DEFINED_TQHEAD_
-#define TAILQ_HEAD(name, type)			\
-struct name {					\
-	struct type *tqh_first;			\
-	struct type **tqh_last;			\
-}
-#endif
-
-#ifndef LIST_ENTRY
-#define EVENT_DEFINED_LISTENTRY_
-#define LIST_ENTRY(type)						\
-struct {								\
-	struct type *le_next;	/* next element */			\
-	struct type **le_prev;	/* address of previous next element */	\
-}
-#endif /* !LIST_ENTRY */
-
-#ifndef LIST_HEAD
-#define EVENT_DEFINED_LISTHEAD_
-#define LIST_HEAD(name, type)						\
-struct name {								\
-	struct type *lh_first;  /* first element */			\
-	}
-#endif /* !LIST_HEAD */
-
 struct event_callback {
-	TAILQ_ENTRY(event_callback) evcb_active_next;
+	EVENT__TAILQ_ENTRY(event_callback) evcb_active_next;
 	short evcb_flags;
 	ev_uint8_t evcb_pri;	/* smaller numbers are higher priority */
 	ev_uint8_t evcb_closure;
@@ -119,7 +85,7 @@ struct event {
 
 	/* for managing timeouts */
 	union {
-		TAILQ_ENTRY(event) ev_next_with_common_timeout;
+		EVENT__TAILQ_ENTRY(event) ev_next_with_common_timeout;
 		int min_heap_idx;
 	} ev_timeout_pos;
 	evutil_socket_t ev_fd;
@@ -129,13 +95,13 @@ struct event {
 	union {
 		/* used for io events */
 		struct {
-			LIST_ENTRY (event) ev_io_next;
+			EVENT__LIST_ENTRY (event) ev_io_next;
 			struct timeval ev_timeout;
 		} ev_io;
 
 		/* used by signal events */
 		struct {
-			LIST_ENTRY (event) ev_signal_next;
+			EVENT__LIST_ENTRY (event) ev_signal_next;
 			short ev_ncalls;
 			/* Allows deletes in callback */
 			short *ev_pncalls;
@@ -147,25 +113,8 @@ struct event {
 	struct timeval ev_timeout;
 };
 
-TAILQ_HEAD (event_list, event);
-
-#ifdef EVENT_DEFINED_TQENTRY_
-#undef TAILQ_ENTRY
-#endif
-
-#ifdef EVENT_DEFINED_TQHEAD_
-#undef TAILQ_HEAD
-#endif
-
-LIST_HEAD (event_dlist, event);
-
-#ifdef EVENT_DEFINED_LISTENTRY_
-#undef LIST_ENTRY
-#endif
-
-#ifdef EVENT_DEFINED_LISTHEAD_
-#undef LIST_HEAD
-#endif
+EVENT__TAILQ_HEAD (event_list, event);
+EVENT__LIST_HEAD (event_dlist, event);
 
 #ifdef __cplusplus
 }

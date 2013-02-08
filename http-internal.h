@@ -13,7 +13,6 @@
 #include "event2/event_struct.h"
 #include "util-internal.h"
 #include "defer-internal.h"
-#include "queue-internal.h"
 
 #define HTTP_CONNECT_TIMEOUT	45
 #define HTTP_WRITE_TIMEOUT	50
@@ -63,7 +62,7 @@ struct event_base;
 struct evhttp_connection {
 	/* we use this tailq only if this connection was created for an http
 	 * server */
-	TAILQ_ENTRY(evhttp_connection) next;
+	EVENT__TAILQ_ENTRY(evhttp_connection) next;
 
 	evutil_socket_t fd;
 	struct bufferevent *bufev;
@@ -96,7 +95,7 @@ struct evhttp_connection {
 	/* for server connections, the http server they are connected with */
 	struct evhttp *http_server;
 
-	TAILQ_HEAD(evcon_requestq, evhttp_request) requests;
+	EVENT__TAILQ_HEAD(evcon_requestq, evhttp_request) requests;
 
 	void (*cb)(struct evhttp_connection *, void *);
 	void *cb_arg;
@@ -112,7 +111,7 @@ struct evhttp_connection {
 
 /* A callback for an http server */
 struct evhttp_cb {
-	TAILQ_ENTRY(evhttp_cb) next;
+	EVENT__TAILQ_ENTRY(evhttp_cb) next;
 
 	char *what;
 
@@ -121,37 +120,37 @@ struct evhttp_cb {
 };
 
 /* both the http server as well as the rpc system need to queue connections */
-TAILQ_HEAD(evconq, evhttp_connection);
+EVENT__TAILQ_HEAD(evconq, evhttp_connection);
 
 /* each bound socket is stored in one of these */
 struct evhttp_bound_socket {
-	TAILQ_ENTRY(evhttp_bound_socket) next;
+	EVENT__TAILQ_ENTRY(evhttp_bound_socket) next;
 
 	struct evconnlistener *listener;
 };
 
 /* server alias list item. */
 struct evhttp_server_alias {
-	TAILQ_ENTRY(evhttp_server_alias) next;
+	EVENT__TAILQ_ENTRY(evhttp_server_alias) next;
 
 	char *alias; /* the server alias. */
 };
 
 struct evhttp {
 	/* Next vhost, if this is a vhost. */
-	TAILQ_ENTRY(evhttp) next_vhost;
+	EVENT__TAILQ_ENTRY(evhttp) next_vhost;
 
 	/* All listeners for this host */
-	TAILQ_HEAD(boundq, evhttp_bound_socket) sockets;
+	EVENT__TAILQ_HEAD(boundq, evhttp_bound_socket) sockets;
 
-	TAILQ_HEAD(httpcbq, evhttp_cb) callbacks;
+	EVENT__TAILQ_HEAD(httpcbq, evhttp_cb) callbacks;
 
 	/* All live connections on this host. */
 	struct evconq connections;
 
-	TAILQ_HEAD(vhostsq, evhttp) virtualhosts;
+	EVENT__TAILQ_HEAD(vhostsq, evhttp) virtualhosts;
 
-	TAILQ_HEAD(aliasq, evhttp_server_alias) aliases;
+	EVENT__TAILQ_HEAD(aliasq, evhttp_server_alias) aliases;
 
 	/* NULL if this server is not a vhost */
 	char *vhost_pattern;

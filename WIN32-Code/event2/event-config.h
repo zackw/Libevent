@@ -240,9 +240,6 @@
 /* Define to 1 if you have the <sys/uio.h> header file. */
 /* #undef EVENT__HAVE_SYS_UIO_H */
 
-/* Define if TAILQ_FOREACH is defined in <sys/queue.h> */
-/* #undef EVENT__HAVE_TAILQFOREACH */
-
 /* Define if timeradd is defined in <sys/time.h> */
 /* #undef EVENT__HAVE_TIMERADD */
 

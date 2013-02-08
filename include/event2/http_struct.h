@@ -47,20 +47,16 @@ extern "C" {
 /* For int types. */
 #include <event2/util.h>
 
+/* For EVENT__TAILQ_ENTRY. */
+#include <event2/qutil.h>
+
 /**
  * the request structure that a server receives.
  * WARNING: expect this structure to change.  I will try to provide
  * reasonable accessors.
  */
 struct evhttp_request {
-#if defined(TAILQ_ENTRY)
-	TAILQ_ENTRY(evhttp_request) next;
-#else
-struct {
-	struct evhttp_request *tqe_next;
-	struct evhttp_request **tqe_prev;
-}       next;
-#endif
+	EVENT__TAILQ_ENTRY(evhttp_request) next;
 
 	/* the connection object that this request belongs to */
 	struct evhttp_connection *evcon;

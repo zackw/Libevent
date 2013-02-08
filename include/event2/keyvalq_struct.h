@@ -27,29 +27,10 @@
 #ifndef EVENT2_KEYVALQ_STRUCT_H_INCLUDED_
 #define EVENT2_KEYVALQ_STRUCT_H_INCLUDED_
 
+#include <event2/qutil.h>
+
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-/* FIXME: These duplicate code in keyvalq_struct.h and queue-internal.h,
-   and should never have been exposed in the first place. */
-
-#ifndef TAILQ_ENTRY
-#define EVENT_DEFINED_TQENTRY_
-#define TAILQ_ENTRY(type)						\
-struct {								\
-	struct type *tqe_next;	/* next element */			\
-	struct type **tqe_prev;	/* address of previous next element */	\
-}
-#endif /* !TAILQ_ENTRY */
-
-#ifndef TAILQ_HEAD
-#define EVENT_DEFINED_TQHEAD_
-#define TAILQ_HEAD(name, type)			\
-struct name {					\
-	struct type *tqh_first;			\
-	struct type **tqh_last;			\
-}
 #endif
 
 /*
@@ -57,22 +38,13 @@ struct name {					\
  * query argument parsing.
  */
 struct evkeyval {
-	TAILQ_ENTRY(evkeyval) next;
+	EVENT__TAILQ_ENTRY(evkeyval) next;
 
 	char *key;
 	char *value;
 };
 
-TAILQ_HEAD (evkeyvalq, evkeyval);
-
-/* XXXX This code is duplicated with event_struct.h */
-#ifdef EVENT_DEFINED_TQENTRY_
-#undef TAILQ_ENTRY
-#endif
-
-#ifdef EVENT_DEFINED_TQHEAD_
-#undef TAILQ_HEAD
-#endif
+EVENT__TAILQ_HEAD (evkeyvalq, evkeyval);
 
 #ifdef __cplusplus
 }

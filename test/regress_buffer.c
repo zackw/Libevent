@@ -59,7 +59,6 @@
 #include "defer-internal.h"
 #include "evbuffer-internal.h"
 #include "log-internal.h"
-#include "queue-internal.h"
 
 #include "regress.h"
 

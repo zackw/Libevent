@@ -95,7 +95,6 @@
 #include "http-internal.h"
 #include "mm-internal.h"
 #include "bufferevent-internal.h"
-#include "queue-internal.h"
 
 #ifndef EVENT__HAVE_GETNAMEINFO
 #define NI_MAXSERV 32
@@ -583,7 +582,7 @@ evhttp_make_header(struct evhttp_connection *evcon, struct evhttp_request *req)
 		evhttp_make_header_response(evcon, req);
 	}
 
-	TAILQ_FOREACH(header, req->output_headers, next) {
+	EVENT__TAILQ_FOREACH(header, req->output_headers, next) {
 		evbuffer_add_printf(output, "%s: %s\r\n",
 		    header->key, header->value);
 	}
@@ -637,7 +636,7 @@ evhttp_connection_incoming_fail(struct evhttp_request *req,
 		 */
 		if (!req->userdone) {
 			/* remove it so that it will not be freed */
-			TAILQ_REMOVE(&req->evcon->requests, req, next);
+			EVENT__TAILQ_REMOVE(&req->evcon->requests, req, next);
 			/* indicate that this request no longer has a
 			 * connection object
 			 */
@@ -677,7 +676,7 @@ evhttp_connection_fail_(struct evhttp_connection *evcon,
     enum evhttp_connection_error error)
 {
 	const int errsave = EVUTIL_SOCKET_ERROR();
-	struct evhttp_request* req = TAILQ_FIRST(&evcon->requests);
+	struct evhttp_request* req = EVENT__TAILQ_FIRST(&evcon->requests);
 	void (*cb)(struct evhttp_request *, void *);
 	void *cb_arg;
 	EVUTIL_ASSERT(req != NULL);
@@ -712,56 +711,56 @@ evhttp_connection_fail_(struct evhttp_connection *evcon,
 	 * send over a new connection.   when a user cancels a request,
 	 * all other pending requests should be processed as normal
 	 */
-	TAILQ_REMOVE(&evcon->requests, req, next);
+	EVENT__TAILQ_REMOVE(&evcon->requests, req, next);
 	evhttp_request_free(req);
 
 	/* reset the connection */
 	evhttp_connection_reset_(evcon);
 
 	/* We are trying the next request that was queued on us */
-	if (TAILQ_FIRST(&evcon->requests) != NULL)
-		evhttp_connection_connect_(evcon);
+	if (EVENT__TAILQ_FIRST(&evcon->requests) != NULL)
+		 evhttp_connection_connect_(evcon);
 
-	/* The call to evhttp_connection_reset_ overwrote errno.
-	 * Let's restore the original errno, so that the user's
-	 * callback can have a better idea of what the error was.
-	 */
-	EVUTIL_SET_SOCKET_ERROR(errsave);
+	 /* The call to evhttp_connection_reset_ overwrote errno.
+	  * Let's restore the original errno, so that the user's
+	  * callback can have a better idea of what the error was.
+	  */
+	 EVUTIL_SET_SOCKET_ERROR(errsave);
 
-	/* inform the user */
-	if (cb != NULL)
-		(*cb)(NULL, cb_arg);
-}
+	 /* inform the user */
+	 if (cb != NULL)
+		 (*cb)(NULL, cb_arg);
+ }
 
-/* Bufferevent callback: invoked when any data has been written from an
- * http connection's bufferevent */
-static void
-evhttp_write_cb(struct bufferevent *bufev, void *arg)
-{
-	struct evhttp_connection *evcon = arg;
+ /* Bufferevent callback: invoked when any data has been written from an
+  * http connection's bufferevent */
+ static void
+ evhttp_write_cb(struct bufferevent *bufev, void *arg)
+ {
+	 struct evhttp_connection *evcon = arg;
 
-	/* Activate our call back */
-	if (evcon->cb != NULL)
-		(*evcon->cb)(evcon, evcon->cb_arg);
-}
+	 /* Activate our call back */
+	 if (evcon->cb != NULL)
+		 (*evcon->cb)(evcon, evcon->cb_arg);
+ }
 
-/**
- * Advance the connection state.
- * - If this is an outgoing connection, we've just processed the response;
- *   idle or close the connection.
- * - If this is an incoming connection, we've just processed the request;
- *   respond.
- */
-static void
-evhttp_connection_done(struct evhttp_connection *evcon)
-{
-	struct evhttp_request *req = TAILQ_FIRST(&evcon->requests);
-	int con_outgoing = evcon->flags & EVHTTP_CON_OUTGOING;
+ /**
+  * Advance the connection state.
+  * - If this is an outgoing connection, we've just processed the response;
+  *   idle or close the connection.
+  * - If this is an incoming connection, we've just processed the request;
+  *   respond.
+  */
+ static void
+ evhttp_connection_done(struct evhttp_connection *evcon)
+ {
+	 struct evhttp_request *req = EVENT__TAILQ_FIRST(&evcon->requests);
+	 int con_outgoing = evcon->flags & EVHTTP_CON_OUTGOING;
 
-	if (con_outgoing) {
-		/* idle or close the connection */
-		int need_close;
-		TAILQ_REMOVE(&evcon->requests, req, next);
+	 if (con_outgoing) {
+		 /* idle or close the connection */
+		 int need_close;
+		 EVENT__TAILQ_REMOVE(&evcon->requests, req, next);
 		req->evcon = NULL;
 
 		evcon->state = EVCON_IDLE;
@@ -774,7 +773,7 @@ evhttp_connection_done(struct evhttp_connection *evcon)
 		if (need_close)
 			evhttp_connection_reset_(evcon);
 
-		if (TAILQ_FIRST(&evcon->requests) != NULL) {
+		if (EVENT__TAILQ_FIRST(&evcon->requests) != NULL) {
 			/*
 			 * We have more requests; reset the connection
 			 * and deal with the next request.
@@ -1029,7 +1028,7 @@ static void
 evhttp_read_cb(struct bufferevent *bufev, void *arg)
 {
 	struct evhttp_connection *evcon = arg;
-	struct evhttp_request *req = TAILQ_FIRST(&evcon->requests);
+	struct evhttp_request *req = EVENT__TAILQ_FIRST(&evcon->requests);
 
 	/* Cancel if it's pending. */
 	event_deferred_cb_cancel_(get_deferred_queue(evcon),
@@ -1091,7 +1090,7 @@ static void
 evhttp_write_connectioncb(struct evhttp_connection *evcon, void *arg)
 {
 	/* This is after writing the request to the server */
-	struct evhttp_request *req = TAILQ_FIRST(&evcon->requests);
+	struct evhttp_request *req = EVENT__TAILQ_FIRST(&evcon->requests);
 	EVUTIL_ASSERT(req != NULL);
 
 	EVUTIL_ASSERT(evcon->state == EVCON_WRITING);
@@ -1122,14 +1121,14 @@ evhttp_connection_free(struct evhttp_connection *evcon)
 	 * because it gets dequeued either in evhttp_connection_done or
 	 * evhttp_connection_fail_.
 	 */
-	while ((req = TAILQ_FIRST(&evcon->requests)) != NULL) {
-		TAILQ_REMOVE(&evcon->requests, req, next);
+	while ((req = EVENT__TAILQ_FIRST(&evcon->requests)) != NULL) {
+		EVENT__TAILQ_REMOVE(&evcon->requests, req, next);
 		evhttp_request_free(req);
 	}
 
 	if (evcon->http_server != NULL) {
 		struct evhttp *http = evcon->http_server;
-		TAILQ_REMOVE(&http->connections, evcon, next);
+		EVENT__TAILQ_REMOVE(&http->connections, evcon, next);
 	}
 
 	if (event_initialized(&evcon->retry_ev)) {
@@ -1179,7 +1178,7 @@ evhttp_connection_set_local_port(struct evhttp_connection *evcon,
 static void
 evhttp_request_dispatch(struct evhttp_connection* evcon)
 {
-	struct evhttp_request *req = TAILQ_FIRST(&evcon->requests);
+	struct evhttp_request *req = EVENT__TAILQ_FIRST(&evcon->requests);
 
 	/* this should not usually happy but it's possible */
 	if (req == NULL)
@@ -1297,17 +1296,17 @@ evhttp_connection_cb_cleanup(struct evhttp_connection *evcon)
 	 * avoid freeing it prematurely we iterate over the copy of
 	 * the queue.
 	 */
-	TAILQ_INIT(&requests);
-	while (TAILQ_FIRST(&evcon->requests) != NULL) {
-		struct evhttp_request *request = TAILQ_FIRST(&evcon->requests);
-		TAILQ_REMOVE(&evcon->requests, request, next);
-		TAILQ_INSERT_TAIL(&requests, request, next);
+	EVENT__TAILQ_INIT(&requests);
+	while (EVENT__TAILQ_FIRST(&evcon->requests) != NULL) {
+		struct evhttp_request *request = EVENT__TAILQ_FIRST(&evcon->requests);
+		EVENT__TAILQ_REMOVE(&evcon->requests, request, next);
+		EVENT__TAILQ_INSERT_TAIL(&requests, request, next);
 	}
 
 	/* for now, we just signal all requests by executing their callbacks */
-	while (TAILQ_FIRST(&requests) != NULL) {
-		struct evhttp_request *request = TAILQ_FIRST(&requests);
-		TAILQ_REMOVE(&requests, request, next);
+	while (EVENT__TAILQ_FIRST(&requests) != NULL) {
+		struct evhttp_request *request = EVENT__TAILQ_FIRST(&requests);
+		EVENT__TAILQ_REMOVE(&requests, request, next);
 		request->evcon = NULL;
 
 		/* we might want to set an error here */
@@ -1320,7 +1319,7 @@ static void
 evhttp_error_cb(struct bufferevent *bufev, short what, void *arg)
 {
 	struct evhttp_connection *evcon = arg;
-	struct evhttp_request *req = TAILQ_FIRST(&evcon->requests);
+	struct evhttp_request *req = EVENT__TAILQ_FIRST(&evcon->requests);
 
 	if (evcon->fd == -1)
 		evcon->fd = bufferevent_getfd(bufev);
@@ -1693,7 +1692,7 @@ evhttp_find_header(const struct evkeyvalq *headers, const char *key)
 {
 	struct evkeyval *header;
 
-	TAILQ_FOREACH(header, headers, next) {
+	EVENT__TAILQ_FOREACH(header, headers, next) {
 		if (evutil_ascii_strcasecmp(header->key, key) == 0)
 			return (header->value);
 	}
@@ -1706,10 +1705,10 @@ evhttp_clear_headers(struct evkeyvalq *headers)
 {
 	struct evkeyval *header;
 
-	for (header = TAILQ_FIRST(headers);
+	for (header = EVENT__TAILQ_FIRST(headers);
 	    header != NULL;
-	    header = TAILQ_FIRST(headers)) {
-		TAILQ_REMOVE(headers, header, next);
+	    header = EVENT__TAILQ_FIRST(headers)) {
+		EVENT__TAILQ_REMOVE(headers, header, next);
 		mm_free(header->key);
 		mm_free(header->value);
 		mm_free(header);
@@ -1726,7 +1725,7 @@ evhttp_remove_header(struct evkeyvalq *headers, const char *key)
 {
 	struct evkeyval *header;
 
-	TAILQ_FOREACH(header, headers, next) {
+	EVENT__TAILQ_FOREACH(header, headers, next) {
 		if (evutil_ascii_strcasecmp(header->key, key) == 0)
 			break;
 	}
@@ -1735,7 +1734,7 @@ evhttp_remove_header(struct evkeyvalq *headers, const char *key)
 		return (-1);
 
 	/* Free and remove the header that we found */
-	TAILQ_REMOVE(headers, header, next);
+	EVENT__TAILQ_REMOVE(headers, header, next);
 	mm_free(header->key);
 	mm_free(header->value);
 	mm_free(header);
@@ -1799,7 +1798,7 @@ evhttp_add_header_internal(struct evkeyvalq *headers,
 		return (-1);
 	}
 
-	TAILQ_INSERT_TAIL(headers, header, next);
+	EVENT__TAILQ_INSERT_TAIL(headers, header, next);
 
 	return (0);
 }
@@ -1859,7 +1858,7 @@ evhttp_parse_firstline_(struct evhttp_request *req, struct evbuffer *buffer)
 static int
 evhttp_append_to_last_header(struct evkeyvalq *headers, char *line)
 {
-	struct evkeyval *header = TAILQ_LAST(headers, evkeyvalq);
+	struct evkeyval *header = EVENT__TAILQ_LAST(headers, evkeyvalq);
 	char *newval;
 	size_t old_len, line_len;
 
@@ -2210,7 +2209,7 @@ evhttp_connection_base_bufferevent_new(struct event_base *base, struct evdns_bas
 	evcon->bufev = bev;
 
 	evcon->state = EVCON_DISCONNECTED;
-	TAILQ_INIT(&evcon->requests);
+	EVENT__TAILQ_INIT(&evcon->requests);
 
 	evcon->initial_retry_timeout.tv_sec = 2;
 	evcon->initial_retry_timeout.tv_usec = 0;
@@ -2411,7 +2410,7 @@ evhttp_make_request(struct evhttp_connection *evcon,
 	req->evcon = evcon;
 	EVUTIL_ASSERT(!(req->flags & EVHTTP_REQ_OWN_CONNECTION));
 
-	TAILQ_INSERT_TAIL(&evcon->requests, req, next);
+	EVENT__TAILQ_INSERT_TAIL(&evcon->requests, req, next);
 
 	/* If the connection object is not connected; make it so */
 	if (!evhttp_connected(evcon)) {
@@ -2421,7 +2420,7 @@ evhttp_make_request(struct evhttp_connection *evcon,
 		 * evcon->requests.  Thus, enqueue the request in advance and
 		 * remove it in the error case. */
 		if (res != 0)
-			TAILQ_REMOVE(&evcon->requests, req, next);
+			EVENT__TAILQ_REMOVE(&evcon->requests, req, next);
 
 		return res;
 	}
@@ -2431,7 +2430,7 @@ evhttp_make_request(struct evhttp_connection *evcon,
 	 * then we can dispatch this request immediately.  Otherwise, it
 	 * will be dispatched once the pending requests are completed.
 	 */
-	if (TAILQ_FIRST(&evcon->requests) == req)
+	if (EVENT__TAILQ_FIRST(&evcon->requests) == req)
 		evhttp_request_dispatch(evcon);
 
 	return (0);
@@ -2443,7 +2442,7 @@ evhttp_cancel_request(struct evhttp_request *req)
 	struct evhttp_connection *evcon = req->evcon;
 	if (evcon != NULL) {
 		/* We need to remove it from the connection */
-		if (TAILQ_FIRST(&evcon->requests) == req) {
+		if (EVENT__TAILQ_FIRST(&evcon->requests) == req) {
 			/* it's currently being worked on, so reset
 			 * the connection.
 			 */
@@ -2456,7 +2455,7 @@ evhttp_cancel_request(struct evhttp_request *req)
 			/* otherwise, we can just remove it from the
 			 * queue
 			 */
-			TAILQ_REMOVE(&evcon->requests, req, next);
+			EVENT__TAILQ_REMOVE(&evcon->requests, req, next);
 		}
 	}
 
@@ -2494,8 +2493,8 @@ static void
 evhttp_send_done(struct evhttp_connection *evcon, void *arg)
 {
 	int need_close;
-	struct evhttp_request *req = TAILQ_FIRST(&evcon->requests);
-	TAILQ_REMOVE(&evcon->requests, req, next);
+	struct evhttp_request *req = EVENT__TAILQ_FIRST(&evcon->requests);
+	EVENT__TAILQ_REMOVE(&evcon->requests, req, next);
 
 	need_close =
 	    (REQ_VERSION_BEFORE(req, 1, 1) &&
@@ -2563,7 +2562,7 @@ evhttp_send(struct evhttp_request *req, struct evbuffer *databuf)
 		return;
 	}
 
-	EVUTIL_ASSERT(TAILQ_FIRST(&evcon->requests) == req);
+	EVUTIL_ASSERT(EVENT__TAILQ_FIRST(&evcon->requests) == req);
 
 	/* we expect no more calls form the user on this request */
 	req->userdone = 1;
@@ -2954,7 +2953,7 @@ evhttp_parse_query_impl(const char *str, struct evkeyvalq *headers,
 	int result = -1;
 	struct evhttp_uri *uri=NULL;
 
-	TAILQ_INIT(headers);
+	EVENT__TAILQ_INIT(headers);
 
 	if (is_whole_uri) {
 		uri = evhttp_uri_parse(str);
@@ -3037,7 +3036,7 @@ evhttp_dispatch_callback(struct httpcbq *callbacks, struct evhttp_request *req)
 	evhttp_decode_uri_internal(path, offset, translated,
 	    0 /* decode_plus */);
 
-	TAILQ_FOREACH(cb, callbacks, next) {
+	EVENT__TAILQ_FOREACH(cb, callbacks, next) {
 		if (!strcmp(cb->what, translated)) {
 			mm_free(translated);
 			return (cb);
@@ -3092,7 +3091,7 @@ evhttp_find_alias(struct evhttp *http, struct evhttp **outhttp,
 	struct evhttp_server_alias *alias;
 	struct evhttp *vhost;
 
-	TAILQ_FOREACH(alias, &http->aliases, next) {
+	EVENT__TAILQ_FOREACH(alias, &http->aliases, next) {
 		/* XXX Do we need to handle IP addresses? */
 		if (!evutil_ascii_strcasecmp(alias->alias, hostname)) {
 			if (outhttp)
@@ -3103,7 +3102,7 @@ evhttp_find_alias(struct evhttp *http, struct evhttp **outhttp,
 
 	/* XXX It might be good to avoid recursion here, but I don't
 	   see a way to do that w/o a list. */
-	TAILQ_FOREACH(vhost, &http->virtualhosts, next_vhost) {
+	EVENT__TAILQ_FOREACH(vhost, &http->virtualhosts, next_vhost) {
 		if (evhttp_find_alias(vhost, outhttp, hostname))
 			return 1;
 	}
@@ -3135,7 +3134,7 @@ evhttp_find_vhost(struct evhttp *http, struct evhttp **outhttp,
 
 	do {
 		oldhttp = http;
-		TAILQ_FOREACH(vhost, &http->virtualhosts, next_vhost) {
+		EVENT__TAILQ_FOREACH(vhost, &http->virtualhosts, next_vhost) {
 			if (prefix_suffix_match(vhost->vhost_pattern,
 				hostname, 1 /* ignorecase */)) {
 				http = vhost;
@@ -3286,7 +3285,7 @@ evhttp_foreach_bound_socket(struct evhttp *http,
 {
 	struct evhttp_bound_socket *bound;
 
-	TAILQ_FOREACH(bound, &http->sockets, next)
+	EVENT__TAILQ_FOREACH(bound, &http->sockets, next)
 		function(bound, argument);
 }
 
@@ -3323,7 +3322,7 @@ evhttp_bind_listener(struct evhttp *http, struct evconnlistener *listener)
 		return (NULL);
 
 	bound->listener = listener;
-	TAILQ_INSERT_TAIL(&http->sockets, bound, next);
+	EVENT__TAILQ_INSERT_TAIL(&http->sockets, bound, next);
 
 	evconnlistener_set_cb(listener, accept_socket_cb, http);
 	return bound;
@@ -3344,7 +3343,7 @@ evhttp_bound_socket_get_listener(struct evhttp_bound_socket *bound)
 void
 evhttp_del_accept_socket(struct evhttp *http, struct evhttp_bound_socket *bound)
 {
-	TAILQ_REMOVE(&http->sockets, bound, next);
+	EVENT__TAILQ_REMOVE(&http->sockets, bound, next);
 	evconnlistener_free(bound->listener);
 	mm_free(bound);
 }
@@ -3369,11 +3368,11 @@ evhttp_new_object(void)
 	    EVHTTP_REQ_PUT |
 	    EVHTTP_REQ_DELETE);
 
-	TAILQ_INIT(&http->sockets);
-	TAILQ_INIT(&http->callbacks);
-	TAILQ_INIT(&http->connections);
-	TAILQ_INIT(&http->virtualhosts);
-	TAILQ_INIT(&http->aliases);
+	EVENT__TAILQ_INIT(&http->sockets);
+	EVENT__TAILQ_INIT(&http->callbacks);
+	EVENT__TAILQ_INIT(&http->connections);
+	EVENT__TAILQ_INIT(&http->virtualhosts);
+	EVENT__TAILQ_INIT(&http->aliases);
 
 	return (http);
 }
@@ -3421,27 +3420,27 @@ evhttp_free(struct evhttp* http)
 	struct evhttp_server_alias *alias;
 
 	/* Remove the accepting part */
-	while ((bound = TAILQ_FIRST(&http->sockets)) != NULL) {
-		TAILQ_REMOVE(&http->sockets, bound, next);
+	while ((bound = EVENT__TAILQ_FIRST(&http->sockets)) != NULL) {
+		EVENT__TAILQ_REMOVE(&http->sockets, bound, next);
 
 		evconnlistener_free(bound->listener);
 
 		mm_free(bound);
 	}
 
-	while ((evcon = TAILQ_FIRST(&http->connections)) != NULL) {
+	while ((evcon = EVENT__TAILQ_FIRST(&http->connections)) != NULL) {
 		/* evhttp_connection_free removes the connection */
 		evhttp_connection_free(evcon);
 	}
 
-	while ((http_cb = TAILQ_FIRST(&http->callbacks)) != NULL) {
-		TAILQ_REMOVE(&http->callbacks, http_cb, next);
+	while ((http_cb = EVENT__TAILQ_FIRST(&http->callbacks)) != NULL) {
+		EVENT__TAILQ_REMOVE(&http->callbacks, http_cb, next);
 		mm_free(http_cb->what);
 		mm_free(http_cb);
 	}
 
-	while ((vhost = TAILQ_FIRST(&http->virtualhosts)) != NULL) {
-		TAILQ_REMOVE(&http->virtualhosts, vhost, next_vhost);
+	while ((vhost = EVENT__TAILQ_FIRST(&http->virtualhosts)) != NULL) {
+		EVENT__TAILQ_REMOVE(&http->virtualhosts, vhost, next_vhost);
 
 		evhttp_free(vhost);
 	}
@@ -3449,8 +3448,8 @@ evhttp_free(struct evhttp* http)
 	if (http->vhost_pattern != NULL)
 		mm_free(http->vhost_pattern);
 
-	while ((alias = TAILQ_FIRST(&http->aliases)) != NULL) {
-		TAILQ_REMOVE(&http->aliases, alias, next);
+	while ((alias = EVENT__TAILQ_FIRST(&http->aliases)) != NULL) {
+		EVENT__TAILQ_REMOVE(&http->aliases, alias, next);
 		mm_free(alias->alias);
 		mm_free(alias);
 	}
@@ -3464,14 +3463,14 @@ evhttp_add_virtual_host(struct evhttp* http, const char *pattern,
 {
 	/* a vhost can only be a vhost once and should not have bound sockets */
 	if (vhost->vhost_pattern != NULL ||
-	    TAILQ_FIRST(&vhost->sockets) != NULL)
+	    EVENT__TAILQ_FIRST(&vhost->sockets) != NULL)
 		return (-1);
 
 	vhost->vhost_pattern = mm_strdup(pattern);
 	if (vhost->vhost_pattern == NULL)
 		return (-1);
 
-	TAILQ_INSERT_TAIL(&http->virtualhosts, vhost, next_vhost);
+	EVENT__TAILQ_INSERT_TAIL(&http->virtualhosts, vhost, next_vhost);
 
 	return (0);
 }
@@ -3482,7 +3481,7 @@ evhttp_remove_virtual_host(struct evhttp* http, struct evhttp* vhost)
 	if (vhost->vhost_pattern == NULL)
 		return (-1);
 
-	TAILQ_REMOVE(&http->virtualhosts, vhost, next_vhost);
+	EVENT__TAILQ_REMOVE(&http->virtualhosts, vhost, next_vhost);
 
 	mm_free(vhost->vhost_pattern);
 	vhost->vhost_pattern = NULL;
@@ -3505,7 +3504,7 @@ evhttp_add_server_alias(struct evhttp *http, const char *alias)
 		return -1;
 	}
 
-	TAILQ_INSERT_TAIL(&http->aliases, evalias, next);
+	EVENT__TAILQ_INSERT_TAIL(&http->aliases, evalias, next);
 
 	return 0;
 }
@@ -3515,9 +3514,9 @@ evhttp_remove_server_alias(struct evhttp *http, const char *alias)
 {
 	struct evhttp_server_alias *evalias;
 
-	TAILQ_FOREACH(evalias, &http->aliases, next) {
+	EVENT__TAILQ_FOREACH(evalias, &http->aliases, next) {
 		if (evutil_ascii_strcasecmp(evalias->alias, alias) == 0) {
-			TAILQ_REMOVE(&http->aliases, evalias, next);
+			EVENT__TAILQ_REMOVE(&http->aliases, evalias, next);
 			mm_free(evalias->alias);
 			mm_free(evalias);
 			return 0;
@@ -3580,7 +3579,7 @@ evhttp_set_cb(struct evhttp *http, const char *uri,
 {
 	struct evhttp_cb *http_cb;
 
-	TAILQ_FOREACH(http_cb, &http->callbacks, next) {
+	EVENT__TAILQ_FOREACH(http_cb, &http->callbacks, next) {
 		if (strcmp(http_cb->what, uri) == 0)
 			return (-1);
 	}
@@ -3599,7 +3598,7 @@ evhttp_set_cb(struct evhttp *http, const char *uri,
 	http_cb->cb = cb;
 	http_cb->cbarg = cbarg;
 
-	TAILQ_INSERT_TAIL(&http->callbacks, http_cb, next);
+	EVENT__TAILQ_INSERT_TAIL(&http->callbacks, http_cb, next);
 
 	return (0);
 }
@@ -3609,14 +3608,14 @@ evhttp_del_cb(struct evhttp *http, const char *uri)
 {
 	struct evhttp_cb *http_cb;
 
-	TAILQ_FOREACH(http_cb, &http->callbacks, next) {
+	EVENT__TAILQ_FOREACH(http_cb, &http->callbacks, next) {
 		if (strcmp(http_cb->what, uri) == 0)
 			break;
 	}
 	if (http_cb == NULL)
 		return (-1);
 
-	TAILQ_REMOVE(&http->callbacks, http_cb, next);
+	EVENT__TAILQ_REMOVE(&http->callbacks, http_cb, next);
 	mm_free(http_cb->what);
 	mm_free(http_cb);
 
@@ -3663,14 +3662,14 @@ evhttp_request_new(void (*cb)(struct evhttp_request *, void *), void *arg)
 		event_warn("%s: calloc", __func__);
 		goto error;
 	}
-	TAILQ_INIT(req->input_headers);
+	EVENT__TAILQ_INIT(req->input_headers);
 
 	req->output_headers = mm_calloc(1, sizeof(struct evkeyvalq));
 	if (req->output_headers == NULL) {
 		event_warn("%s: calloc", __func__);
 		goto error;
 	}
-	TAILQ_INIT(req->output_headers);
+	EVENT__TAILQ_INIT(req->output_headers);
 
 	if ((req->input_buffer = evbuffer_new()) == NULL) {
 		event_warn("%s: evbuffer_new", __func__);
@@ -3930,7 +3929,7 @@ evhttp_associate_new_request_with_connection(struct evhttp_connection *evcon)
 	 */
 	req->userdone = 1;
 
-	TAILQ_INSERT_TAIL(&evcon->requests, req, next);
+	EVENT__TAILQ_INSERT_TAIL(&evcon->requests, req, next);
 
 	req->kind = EVHTTP_REQUEST;
 
@@ -3963,7 +3962,7 @@ evhttp_get_request(struct evhttp *http, evutil_socket_t fd,
 	 * we need to know which http server it belongs to.
 	 */
 	evcon->http_server = http;
-	TAILQ_INSERT_TAIL(&http->connections, evcon, next);
+	EVENT__TAILQ_INSERT_TAIL(&http->connections, evcon, next);
 
 	if (evhttp_associate_new_request_with_connection(evcon) == -1)
 		evhttp_connection_free(evcon);

@@ -37,7 +37,6 @@ extern "C" {
 #include "event2/event_struct.h"
 #include "util-internal.h"
 #include "defer-internal.h"
-#include "queue-internal.h"
 
 /* Experimental cb flag: "never deferred."  Implementation note:
  * these callbacks may get an inaccurate view of n_del/n_added in their
@@ -61,7 +60,7 @@ extern "C" {
  * when bytes are added to or removed from the evbuffer. */
 struct evbuffer_cb_entry {
 	/** Structures to implement a doubly-linked queue of callbacks */
-	LIST_ENTRY(evbuffer_cb_entry) next;
+	EVENT__LIST_ENTRY(evbuffer_cb_entry) next;
 	/** The callback function to invoke when this callback is called.
 	    If EVBUFFER_CB_OBSOLETE is set in flags, the cb_obsolete field is
 	    valid; otherwise, cb_func is valid. */
@@ -148,7 +147,7 @@ struct evbuffer {
 	struct event_callback deferred;
 
 	/** A doubly-linked-list of callback functions */
-	LIST_HEAD(evbuffer_cb_queue, evbuffer_cb_entry) callbacks;
+	EVENT__LIST_HEAD(evbuffer_cb_queue, evbuffer_cb_entry) callbacks;
 
 	/** The parent bufferevent object this evbuffer belongs to.
 	 * NULL if the evbuffer stands alone. */

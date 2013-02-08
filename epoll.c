@@ -56,7 +56,6 @@
 #include "evmap-internal.h"
 #include "changelist-internal.h"
 #include "time-internal.h"
-#include "queue-internal.h"
 
 #if defined(EVENT__HAVE_SYS_TIMERFD_H) &&			  \
 	defined(EVENT__HAVE_TIMERFD_CREATE) &&			  \

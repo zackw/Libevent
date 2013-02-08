@@ -360,7 +360,7 @@ bev_group_suspend_reading_(struct bufferevent_rate_limit_group *g)
 	   bufferevent, it will find out later when it looks at its limit
 	   and sees that its group is suspended.)
 	*/
-	LIST_FOREACH(bev, &g->members, rate_limiting->next_in_group) {
+	EVENT__LIST_FOREACH(bev, &g->members, rate_limiting->next_in_group) {
 		if (EVLOCK_TRY_LOCK_(bev->lock)) {
 			bufferevent_suspend_read_(&bev->bev,
 			    BEV_SUSPEND_BW_GROUP);
@@ -378,7 +378,7 @@ bev_group_suspend_writing_(struct bufferevent_rate_limit_group *g)
 	struct bufferevent_private *bev;
 	g->write_suspended = 1;
 	g->pending_unsuspend_write = 0;
-	LIST_FOREACH(bev, &g->members, rate_limiting->next_in_group) {
+	EVENT__LIST_FOREACH(bev, &g->members, rate_limiting->next_in_group) {
 		if (EVLOCK_TRY_LOCK_(bev->lock)) {
 			bufferevent_suspend_write_(&bev->bev,
 			    BEV_SUSPEND_BW_GROUP);
@@ -453,13 +453,13 @@ bev_group_random_element_(struct bufferevent_rate_limit_group *group)
 	if (!group->n_members)
 		return NULL;
 
-	EVUTIL_ASSERT(! LIST_EMPTY(&group->members));
+	EVUTIL_ASSERT(! EVENT__LIST_EMPTY(&group->members));
 
 	which = evutil_weakrand_range_(&group->weakrand_seed, group->n_members);
 
-	bev = LIST_FIRST(&group->members);
+	bev = EVENT__LIST_FIRST(&group->members);
 	while (which--)
-		bev = LIST_NEXT(bev, rate_limiting->next_in_group);
+		bev = EVENT__LIST_NEXT(bev, rate_limiting->next_in_group);
 
 	return bev;
 }
@@ -474,12 +474,12 @@ bev_group_random_element_(struct bufferevent_rate_limit_group *group)
 #define FOREACH_RANDOM_ORDER(block)			\
 	do {						\
 		first = bev_group_random_element_(g);	\
-		for (bev = first; bev != LIST_END(&g->members); \
-		    bev = LIST_NEXT(bev, rate_limiting->next_in_group)) { \
+		for (bev = first; bev != EVENT__LIST_END(&g->members); \
+		    bev = EVENT__LIST_NEXT(bev, rate_limiting->next_in_group)) { \
 			block ;					 \
 		}						 \
-		for (bev = LIST_FIRST(&g->members); bev && bev != first; \
-		    bev = LIST_NEXT(bev, rate_limiting->next_in_group)) { \
+		for (bev = EVENT__LIST_FIRST(&g->members); bev && bev != first; \
+		    bev = EVENT__LIST_NEXT(bev, rate_limiting->next_in_group)) { \
 			block ;						\
 		}							\
 	} while (0)
@@ -650,7 +650,7 @@ bufferevent_rate_limit_group_new(struct event_base *base,
 	if (!g)
 		return NULL;
 	memcpy(&g->rate_limit_cfg, cfg, sizeof(g->rate_limit_cfg));
-	LIST_INIT(&g->members);
+	EVENT__LIST_INIT(&g->members);
 
 	ev_token_bucket_init_(&g->rate_limit, cfg, tick, 0);
 
@@ -763,7 +763,7 @@ bufferevent_add_to_rate_limit_group(struct bufferevent *bev,
 	LOCK_GROUP(g);
 	bevp->rate_limiting->group = g;
 	++g->n_members;
-	LIST_INSERT_HEAD(&g->members, bevp, rate_limiting->next_in_group);
+	EVENT__LIST_INSERT_HEAD(&g->members, bevp, rate_limiting->next_in_group);
 
 	rsuspend = g->read_suspended;
 	wsuspend = g->write_suspended;
@@ -798,7 +798,7 @@ bufferevent_remove_from_rate_limit_group_internal_(struct bufferevent *bev,
 		LOCK_GROUP(g);
 		bevp->rate_limiting->group = NULL;
 		--g->n_members;
-		LIST_REMOVE(bevp, rate_limiting->next_in_group);
+		EVENT__LIST_REMOVE(bevp, rate_limiting->next_in_group);
 		UNLOCK_GROUP(g);
 	}
 	if (unsuspend) {

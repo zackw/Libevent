@@ -51,7 +51,6 @@
 #include "event2/thread.h"
 #include "evthread-internal.h"
 #include "time-internal.h"
-#include "queue-internal.h"
 
 struct pollidx {
 	int idxplus1;

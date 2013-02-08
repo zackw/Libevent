@@ -64,7 +64,6 @@
 #include "log-internal.h"
 #include "mm-internal.h"
 #include "util-internal.h"
-#include "queue-internal.h"
 
 /*
   Here's our wire format:

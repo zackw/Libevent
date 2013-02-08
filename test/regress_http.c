@@ -60,7 +60,6 @@
 #include "event2/util.h"
 #include "log-internal.h"
 #include "http-internal.h"
-#include "queue-internal.h"
 #include "regress.h"
 #include "regress_testutils.h"
 
@@ -1868,7 +1867,7 @@ http_close_detection_(struct basic_test_data *data, int with_delay)
 	event_base_dispatch(data->base);
 
 	/* at this point, the http server should have no connection */
-	tt_assert(TAILQ_FIRST(&http->connections) == NULL);
+	tt_assert(EVENT__TAILQ_FIRST(&http->connections) == NULL);
 
  end:
 	if (evcon)
@@ -1913,7 +1912,7 @@ http_bad_header_test(void *ptr)
 {
 	struct evkeyvalq headers;
 
-	TAILQ_INIT(&headers);
+	EVENT__TAILQ_INIT(&headers);
 
 	tt_want(evhttp_add_header(&headers, "One", "Two") == 0);
 	tt_want(evhttp_add_header(&headers, "One", "Two\r\n Three") == 0);
@@ -1942,7 +1941,7 @@ http_parse_query_test(void *ptr)
 	struct evkeyvalq headers;
 	int r;
 
-	TAILQ_INIT(&headers);
+	EVENT__TAILQ_INIT(&headers);
 
 	r = evhttp_parse_query("http://www.test.com/?q=test", &headers);
 	tt_want(validate_header(&headers, "q", "test") == 0);

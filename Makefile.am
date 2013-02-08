@@ -264,7 +264,6 @@ noinst_HEADERS +=				\
 	log-internal.h				\
 	minheap-internal.h			\
 	mm-internal.h				\
-	queue-internal.h			\
 	ratelim-internal.h			\
 	ratelim-internal.h			\
 	strlcpy-internal.h			\

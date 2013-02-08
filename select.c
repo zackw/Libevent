@@ -57,7 +57,6 @@
 #include "evthread-internal.h"
 #include "log-internal.h"
 #include "evmap-internal.h"
-#include "queue-internal.h"
 
 #ifndef EVENT__HAVE_FD_MASK
 /* This type is mandatory, but Android doesn't define it. */
