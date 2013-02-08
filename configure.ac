@@ -236,7 +236,10 @@ fi
 dnl Done with everything that messes with CFLAGS (except one, see the
 dnl very bottom of the file).
 
+# Checks for characteristics of the compiler (including all of those
+# required to set up shared library builds).
 LT_INIT
+AC_C_INLINE
 
 # Checks for header files.
 AC_CHECK_HEADERS([ \
@@ -324,15 +327,9 @@ AC_SUBST(OPENSSL_LIBADD)
 
 LIBEVENT_OPENSSL
 
-
 if test x$bwin32 = xtrue; then
    AC_SEARCH_LIBS([getservbyname],[ws2_32])
 fi
-
-dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_C_INLINE
-AC_HEADER_TIME
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS([ \
