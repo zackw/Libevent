@@ -241,6 +241,99 @@ dnl very bottom of the file).
 LT_INIT
 AC_C_INLINE
 
+AC_CACHE_CHECK([how to get the name of the current function],
+               [ac_cv_var_function_name],
+  [ac_cv_var_function_name="not available"
+   AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM([], [[const char *cp = __func__;]])],
+    [ac_cv_var_function_name=__func__])
+   if test "$ac_cv_var_function_name" = "not available"; then
+   AC_COMPILE_IFELSE(
+      [AC_LANG_PROGRAM([], [[const char *cp = __FUNCTION__;]])],
+      [ac_cv_var_function_name=__FUNCTION__])
+   fi
+])
+AH_TEMPLATE([__func__],
+   [Define to an appropriate substitute if not supported by your compiler.])
+AS_CASE([$ac_cv_var_function_name],
+  [__func__],        [],
+  ["not available"], [AC_DEFINE([__func__], [__FILE__])],
+                     [AC_DEFINE_UNQUOTED([__func__],
+                                         [$ac_cv_var_function_name])])
+
+LIBEVENT_GC_SECTIONS=
+if test "$GCC" = yes && test "$enable_function_sections" = yes ; then
+    AC_CACHE_CHECK(
+	[if linker supports omitting unused code and data],
+	[libevent_cv_gc_sections_runs],
+	[
+	    dnl  NetBSD will link but likely not run with --gc-sections
+	    dnl  http://bugs.ntp.org/1844
+	    dnl  http://gnats.netbsd.org/40401
+	    dnl  --gc-sections causes attempt to load as linux elf, with
+	    dnl  wrong syscalls in place.  Test a little gauntlet of
+	    dnl  simple stdio read code checking for errors, expecting
+	    dnl  enough syscall differences that the NetBSD code will
+	    dnl  fail even with Linux emulation working as designed.
+	    dnl  A shorter test could be refined by someone with access
+	    dnl  to a NetBSD host with Linux emulation working.
+	    origCFLAGS="$CFLAGS"
+	    CFLAGS="$CFLAGS -Wl,--gc-sections"
+	    AC_LINK_IFELSE(
+		[AC_LANG_PROGRAM(
+		    [[
+			#include <stdlib.h>
+			#include <stdio.h>
+		    ]],
+		    [[
+			FILE *	fpC;
+			char	buf[32];
+			size_t	cch;
+			int	read_success_once;
+
+			fpC = fopen("conftest.c", "r");
+			if (NULL == fpC)
+				exit(1);
+			do {
+				cch = fread(buf, sizeof(buf), 1, fpC);
+				read_success_once |= (0 != cch);
+			} while (0 != cch);
+			if (!read_success_once)
+				exit(2);
+			if (!feof(fpC))
+				exit(3);
+			if (0 != fclose(fpC))
+				exit(4);
+
+			exit(EXIT_SUCCESS);
+		    ]]
+		)],
+		[
+                    dnl We have to do this invocation manually so that we can
+                    dnl get the output of conftest.err to make sure it doesn't
+                    dnl mention gc-sections.
+		    if test "X$cross_compiling" = "Xyes" || grep gc-sections conftest.err ; then
+			libevent_cv_gc_sections_runs=no
+		    else
+			libevent_cv_gc_sections_runs=no
+			./conftest >/dev/null 2>&1 && libevent_cv_gc_sections_runs=yes
+		    fi
+		],
+		[libevent_cv_gc_sections_runs=no]
+	    )
+	    CFLAGS="$origCFLAGS"
+	    AS_UNSET([origCFLAGS])
+	]
+    )
+    case "$libevent_cv_gc_sections_runs" in
+     yes)
+	CFLAGS="-ffunction-sections -fdata-sections $CFLAGS"
+	LIBEVENT_GC_SECTIONS="-Wl,--gc-sections"
+	;;
+    esac
+fi
+AC_SUBST([LIBEVENT_GC_SECTIONS])
+
 # Checks for header files.
 AC_CHECK_HEADERS([ \
   arpa/inet.h \
@@ -291,47 +384,122 @@ if test "x$ac_cv_header_sys_sysctl_h" = xyes; then
 ])
 fi
 
-dnl Checks for libraries.
-AC_SEARCH_LIBS([inet_ntoa], [nsl])
-AC_SEARCH_LIBS([socket], [socket])
-AC_SEARCH_LIBS([clock_gettime], [rt])
-AC_SEARCH_LIBS([sendfile], [sendfile])
+AC_MSG_CHECKING(for F_SETFD in fcntl.h)
+AC_EGREP_CPP(yes,
+[
+#define _GNU_SOURCE
+#include <fcntl.h>
+#ifdef F_SETFD
+yes
+#endif
+],	[ AC_DEFINE(HAVE_SETFD, 1,
+	      [Define if F_SETFD is defined in <fcntl.h>])
+	  AC_MSG_RESULT(yes) ], AC_MSG_RESULT(no))
 
-if test "x$ac_cv_header_zlib_h" = "xyes"; then
-dnl Determine if we have zlib for regression tests
-dnl Don't put this one in LIBS
-save_LIBS="$LIBS"
-LIBS=""
-ZLIB_LIBS=""
-have_zlib=no
-AC_SEARCH_LIBS([inflateEnd], [z],
-	[have_zlib=yes
-	ZLIB_LIBS="$LIBS"
-	AC_DEFINE(HAVE_LIBZ, 1, [Define if the system has zlib])])
-LIBS="$save_LIBS"
-AC_SUBST(ZLIB_LIBS)
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+
+AC_CHECK_TYPES([uint64_t, uint32_t, uint16_t, uint8_t, uintptr_t], , ,
+[#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#elif defined(HAVE_INTTYPES_H)
+#include <inttypes.h>
+#endif
+#include <sys/types.h>])
+
+AC_CHECK_TYPES([fd_mask], , ,
+[#include <sys/types.h>
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif])
+
+AC_CHECK_TYPES([struct in6_addr,
+                struct sockaddr_in6,
+                sa_family_t,
+                struct addrinfo,
+                struct sockaddr_storage], , ,
+[#define _GNU_SOURCE
+#include <sys/types.h>
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#ifdef HAVE_NETINET_IN6_H
+#include <netinet/in6.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
+#ifdef _WIN32
+#define WIN32_WINNT 0x400
+#define _WIN32_WINNT 0x400
+#define WIN32_LEAN_AND_MEAN
+#if defined(_MSC_VER) && (_MSC_VER < 1300)
+#include <winsock.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+#endif
+])
+AC_CHECK_MEMBERS([struct sockaddr_in.sin_len,
+                  struct sockaddr_in6.sin6_len,
+                  struct sockaddr_storage.ss_family,
+                  struct sockaddr_storage.__ss_family], , ,
+[#include <sys/types.h>
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#ifdef HAVE_NETINET_IN6_H
+#include <netinet/in6.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef _WIN32
+#define WIN32_WINNT 0x400
+#define _WIN32_WINNT 0x400
+#define WIN32_LEAN_AND_MEAN
+#if defined(_MSC_VER) && (_MSC_VER < 1300)
+#include <winsock.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+#endif
+])
+
+AC_MSG_CHECKING([for socklen_t])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+ #include <sys/types.h>
+ #include <sys/socket.h>
+]],
+ [[socklen_t x;]])],
+ [AC_MSG_RESULT(yes)],
+ [AC_MSG_RESULT([no])
+  AC_DEFINE(socklen_t, unsigned int,
+            [Define to unsigned int if you dont have it])
+])
+
+AC_CHECK_SIZEOF(long long)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(size_t)
+AC_CHECK_SIZEOF(void *)
+AC_CHECK_SIZEOF(off_t)
+
+if test $have_pthread = yes; then
+  AC_CHECK_SIZEOF(pthread_t, , [
+AC_INCLUDES_DEFAULT
+#include <pthread.h>
+])
 fi
-AM_CONDITIONAL(ZLIB_REGRESS, [test "$have_zlib" = "yes"])
 
-dnl See if we have openssl.  This doesn't go in LIBS either.
-if test "$bwin32" = true; then
-  EV_LIB_WS32=-lws2_32
-  EV_LIB_GDI=-lgdi32
-else
-  EV_LIB_WS32=
-  EV_LIB_GDI=
-fi
-AC_SUBST(EV_LIB_WS32)
-AC_SUBST(EV_LIB_GDI)
-AC_SUBST(OPENSSL_LIBADD)
-
-LIBEVENT_OPENSSL
-
-if test x$bwin32 = xtrue; then
-   AC_SEARCH_LIBS([getservbyname],[ws2_32])
-fi
-
-dnl Checks for library functions.
+# Checks for library functions.
 AC_CHECK_FUNCS([ \
   accept4 \
   arc4random \
@@ -446,18 +614,6 @@ AC_CHECK_FUNC(gethostbyname_r, [
 ])
 
 fi
-
-AC_MSG_CHECKING(for F_SETFD in fcntl.h)
-AC_EGREP_CPP(yes,
-[
-#define _GNU_SOURCE
-#include <fcntl.h>
-#ifdef F_SETFD
-yes
-#endif
-],	[ AC_DEFINE(HAVE_SETFD, 1,
-	      [Define if F_SETFD is defined in <fcntl.h>])
-	  AC_MSG_RESULT(yes) ], AC_MSG_RESULT(no))
 
 needsignal=no
 haveselect=no
@@ -599,200 +755,48 @@ fi
 
 AM_CONDITIONAL(SIGNAL_SUPPORT, [test "x$needsignal" = "xyes"])
 
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
+# Checks for libraries.
+AC_SEARCH_LIBS([inet_ntoa], [nsl])
+AC_SEARCH_LIBS([socket], [socket])
+AC_SEARCH_LIBS([clock_gettime], [rt])
+AC_SEARCH_LIBS([sendfile], [sendfile])
 
-AC_CHECK_TYPES([uint64_t, uint32_t, uint16_t, uint8_t, uintptr_t], , ,
-[#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#elif defined(HAVE_INTTYPES_H)
-#include <inttypes.h>
-#endif
-#include <sys/types.h>])
-
-AC_CHECK_TYPES([fd_mask], , ,
-[#include <sys/types.h>
-#ifdef HAVE_SYS_SELECT_H
-#include <sys/select.h>
-#endif])
-
-AC_CHECK_SIZEOF(long long)
-AC_CHECK_SIZEOF(long)
-AC_CHECK_SIZEOF(int)
-AC_CHECK_SIZEOF(short)
-AC_CHECK_SIZEOF(size_t)
-AC_CHECK_SIZEOF(void *)
-AC_CHECK_SIZEOF(off_t)
-
-if test $have_pthread = yes; then
-  AC_CHECK_SIZEOF(pthread_t, , [
-AC_INCLUDES_DEFAULT
-#include <pthread.h>
-])
+if test x$bwin32 = xtrue; then
+   AC_SEARCH_LIBS([getservbyname],[ws2_32])
 fi
 
-AC_CHECK_TYPES([struct in6_addr,
-                struct sockaddr_in6,
-                sa_family_t,
-                struct addrinfo,
-                struct sockaddr_storage], , ,
-[#define _GNU_SOURCE
-#include <sys/types.h>
-#ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h>
-#endif
-#ifdef HAVE_NETINET_IN6_H
-#include <netinet/in6.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#ifdef HAVE_NETDB_H
-#include <netdb.h>
-#endif
-#ifdef _WIN32
-#define WIN32_WINNT 0x400
-#define _WIN32_WINNT 0x400
-#define WIN32_LEAN_AND_MEAN
-#if defined(_MSC_VER) && (_MSC_VER < 1300)
-#include <winsock.h>
-#else
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
-#endif
-])
-AC_CHECK_MEMBERS([struct sockaddr_in.sin_len,
-                  struct sockaddr_in6.sin6_len,
-                  struct sockaddr_storage.ss_family,
-                  struct sockaddr_storage.__ss_family], , ,
-[#include <sys/types.h>
-#ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h>
-#endif
-#ifdef HAVE_NETINET_IN6_H
-#include <netinet/in6.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#ifdef _WIN32
-#define WIN32_WINNT 0x400
-#define _WIN32_WINNT 0x400
-#define WIN32_LEAN_AND_MEAN
-#if defined(_MSC_VER) && (_MSC_VER < 1300)
-#include <winsock.h>
-#else
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
-#endif
-])
-
-AC_MSG_CHECKING([for socklen_t])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
- #include <sys/types.h>
- #include <sys/socket.h>
-]],
- [[socklen_t x;]])],
- [AC_MSG_RESULT(yes)],
- [AC_MSG_RESULT([no])
-  AC_DEFINE(socklen_t, unsigned int,
-            [Define to unsigned int if you dont have it])
-])
-
-AC_MSG_CHECKING([whether our compiler supports __func__])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],
- [[const char *cp = __func__;]])],
- [AC_MSG_RESULT([yes])],
- [AC_MSG_RESULT([no])
-  AC_MSG_CHECKING([whether our compiler supports __FUNCTION__])
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],
-    [[const char *cp = __FUNCTION__;]])],
-    [AC_MSG_RESULT([yes])
-     AC_DEFINE(__func__, __FUNCTION__,
-         [Define to appropriate substitue if compiler doesnt have __func__])],
-    [AC_MSG_RESULT([no])
-     AC_DEFINE(__func__, __FILE__,
-         [Define to appropriate substitue if compiler doesnt have __func__])])
-])
-
-# check if we have and should use openssl
-AM_CONDITIONAL(OPENSSL, [test "$enable_openssl" != "no" && test "$have_openssl" = "yes"])
-
-LIBEVENT_GC_SECTIONS=
-if test "$GCC" = yes && test "$enable_function_sections" = yes ; then
-    AC_CACHE_CHECK(
-	[if linker supports omitting unused code and data],
-	[libevent_cv_gc_sections_runs],
-	[
-	    dnl  NetBSD will link but likely not run with --gc-sections
-	    dnl  http://bugs.ntp.org/1844
-	    dnl  http://gnats.netbsd.org/40401
-	    dnl  --gc-sections causes attempt to load as linux elf, with
-	    dnl  wrong syscalls in place.  Test a little gauntlet of
-	    dnl  simple stdio read code checking for errors, expecting
-	    dnl  enough syscall differences that the NetBSD code will
-	    dnl  fail even with Linux emulation working as designed.
-	    dnl  A shorter test could be refined by someone with access
-	    dnl  to a NetBSD host with Linux emulation working.
-	    origCFLAGS="$CFLAGS"
-	    CFLAGS="$CFLAGS -Wl,--gc-sections"
-	    AC_LINK_IFELSE(
-		[AC_LANG_PROGRAM(
-		    [[
-			#include <stdlib.h>
-			#include <stdio.h>
-		    ]],
-		    [[
-			FILE *	fpC;
-			char	buf[32];
-			size_t	cch;
-			int	read_success_once;
-
-			fpC = fopen("conftest.c", "r");
-			if (NULL == fpC)
-				exit(1);
-			do {
-				cch = fread(buf, sizeof(buf), 1, fpC);
-				read_success_once |= (0 != cch);
-			} while (0 != cch);
-			if (!read_success_once)
-				exit(2);
-			if (!feof(fpC))
-				exit(3);
-			if (0 != fclose(fpC))
-				exit(4);
-
-			exit(EXIT_SUCCESS);
-		    ]]
-		)],
-		[
-                    dnl We have to do this invocation manually so that we can
-                    dnl get the output of conftest.err to make sure it doesn't
-                    dnl mention gc-sections.
-		    if test "X$cross_compiling" = "Xyes" || grep gc-sections conftest.err ; then
-			libevent_cv_gc_sections_runs=no
-		    else
-			libevent_cv_gc_sections_runs=no
-			./conftest >/dev/null 2>&1 && libevent_cv_gc_sections_runs=yes
-		    fi
-		],
-		[libevent_cv_gc_sections_runs=no]
-	    )
-	    CFLAGS="$origCFLAGS"
-	    AS_UNSET([origCFLAGS])
-	]
-    )
-    case "$libevent_cv_gc_sections_runs" in
-     yes)
-	CFLAGS="-ffunction-sections -fdata-sections $CFLAGS"
-	LIBEVENT_GC_SECTIONS="-Wl,--gc-sections"
-	;;
-    esac
+if test "x$ac_cv_header_zlib_h" = "xyes"; then
+dnl Determine if we have zlib for regression tests
+dnl Don't put this one in LIBS
+save_LIBS="$LIBS"
+LIBS=""
+ZLIB_LIBS=""
+have_zlib=no
+AC_SEARCH_LIBS([inflateEnd], [z],
+	[have_zlib=yes
+	ZLIB_LIBS="$LIBS"
+	AC_DEFINE(HAVE_LIBZ, 1, [Define if the system has zlib])])
+LIBS="$save_LIBS"
+AC_SUBST(ZLIB_LIBS)
 fi
-AC_SUBST([LIBEVENT_GC_SECTIONS])
+AM_CONDITIONAL(ZLIB_REGRESS, [test "$have_zlib" = "yes"])
+
+dnl See if we have openssl.  This doesn't go in LIBS either.
+if test "$bwin32" = true; then
+  EV_LIB_WS32=-lws2_32
+  EV_LIB_GDI=-lgdi32
+else
+  EV_LIB_WS32=
+  EV_LIB_GDI=
+fi
+AC_SUBST(EV_LIB_WS32)
+AC_SUBST(EV_LIB_GDI)
+AC_SUBST(OPENSSL_LIBADD)
+
+LIBEVENT_OPENSSL
+
+AM_CONDITIONAL(OPENSSL,
+  [test "$enable_openssl" != "no" && test "$have_openssl" = "yes"])
 
 # This must be done after everything else, because many of autoconf's
 # test programs provoke warnings.
