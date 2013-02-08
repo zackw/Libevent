@@ -233,106 +233,17 @@ if test x$enable_verbose_debug = xyes; then
   CFLAGS="$CFLAGS -DUSE_DEBUG"
 fi
 
+if test "$GCC" = yes && test "$enable_function_sections" = yes ; then
+  LIBEVENT_CHECK_GC_SECTIONS
+fi
+
 dnl Done with everything that messes with CFLAGS (except one, see the
 dnl very bottom of the file).
-
-# Checks for characteristics of the compiler (including all of those
-# required to set up shared library builds).
 LT_INIT
+
+# Checks for characteristics of the compiler.
 AC_C_INLINE
-
-AC_CACHE_CHECK([how to get the name of the current function],
-               [ac_cv_var_function_name],
-  [ac_cv_var_function_name="not available"
-   AC_COMPILE_IFELSE(
-    [AC_LANG_PROGRAM([], [[const char *cp = __func__;]])],
-    [ac_cv_var_function_name=__func__])
-   if test "$ac_cv_var_function_name" = "not available"; then
-   AC_COMPILE_IFELSE(
-      [AC_LANG_PROGRAM([], [[const char *cp = __FUNCTION__;]])],
-      [ac_cv_var_function_name=__FUNCTION__])
-   fi
-])
-AH_TEMPLATE([__func__],
-   [Define to an appropriate substitute if not supported by your compiler.])
-AS_CASE([$ac_cv_var_function_name],
-  [__func__],        [],
-  ["not available"], [AC_DEFINE([__func__], [__FILE__])],
-                     [AC_DEFINE_UNQUOTED([__func__],
-                                         [$ac_cv_var_function_name])])
-
-LIBEVENT_GC_SECTIONS=
-if test "$GCC" = yes && test "$enable_function_sections" = yes ; then
-    AC_CACHE_CHECK(
-	[if linker supports omitting unused code and data],
-	[libevent_cv_gc_sections_runs],
-	[
-	    dnl  NetBSD will link but likely not run with --gc-sections
-	    dnl  http://bugs.ntp.org/1844
-	    dnl  http://gnats.netbsd.org/40401
-	    dnl  --gc-sections causes attempt to load as linux elf, with
-	    dnl  wrong syscalls in place.  Test a little gauntlet of
-	    dnl  simple stdio read code checking for errors, expecting
-	    dnl  enough syscall differences that the NetBSD code will
-	    dnl  fail even with Linux emulation working as designed.
-	    dnl  A shorter test could be refined by someone with access
-	    dnl  to a NetBSD host with Linux emulation working.
-	    origCFLAGS="$CFLAGS"
-	    CFLAGS="$CFLAGS -Wl,--gc-sections"
-	    AC_LINK_IFELSE(
-		[AC_LANG_PROGRAM(
-		    [[
-			#include <stdlib.h>
-			#include <stdio.h>
-		    ]],
-		    [[
-			FILE *	fpC;
-			char	buf[32];
-			size_t	cch;
-			int	read_success_once;
-
-			fpC = fopen("conftest.c", "r");
-			if (NULL == fpC)
-				exit(1);
-			do {
-				cch = fread(buf, sizeof(buf), 1, fpC);
-				read_success_once |= (0 != cch);
-			} while (0 != cch);
-			if (!read_success_once)
-				exit(2);
-			if (!feof(fpC))
-				exit(3);
-			if (0 != fclose(fpC))
-				exit(4);
-
-			exit(EXIT_SUCCESS);
-		    ]]
-		)],
-		[
-                    dnl We have to do this invocation manually so that we can
-                    dnl get the output of conftest.err to make sure it doesn't
-                    dnl mention gc-sections.
-		    if test "X$cross_compiling" = "Xyes" || grep gc-sections conftest.err ; then
-			libevent_cv_gc_sections_runs=no
-		    else
-			libevent_cv_gc_sections_runs=no
-			./conftest >/dev/null 2>&1 && libevent_cv_gc_sections_runs=yes
-		    fi
-		],
-		[libevent_cv_gc_sections_runs=no]
-	    )
-	    CFLAGS="$origCFLAGS"
-	    AS_UNSET([origCFLAGS])
-	]
-    )
-    case "$libevent_cv_gc_sections_runs" in
-     yes)
-	CFLAGS="-ffunction-sections -fdata-sections $CFLAGS"
-	LIBEVENT_GC_SECTIONS="-Wl,--gc-sections"
-	;;
-    esac
-fi
-AC_SUBST([LIBEVENT_GC_SECTIONS])
+LIBEVENT_CURRENT_FUNCTION_NAME
 
 # Checks for header files.
 AC_CHECK_HEADERS([ \
