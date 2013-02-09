@@ -57,7 +57,8 @@ AC_DEFUN([LIBEVENT_ADD_CFLAGS],
 _save_flags="$[]_AC_LANG_PREFIX[]FLAGS"
 _good_flags=
 for flag in m4_ifnblank($2, $2, $1); do
-  _AC_LANG_PREFIX[]FLAGS="$flag"
+  # for clang, need -Werror to catch unsupported flags
+  _AC_LANG_PREFIX[]FLAGS="-Werror $flag"
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
     [_good_flags="$_good_flags${_good_flags:+ }$flag"])
 done

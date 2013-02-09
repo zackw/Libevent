@@ -2,9 +2,9 @@ dnl ######################################################################
 dnl OpenSSL support
 AC_DEFUN([LIBEVENT_OPENSSL], [
 AC_REQUIRE([PKG_PROG_PKG_CONFIG])dnl
-
 case "$enable_openssl" in
  yes)
+    AC_MSG_CHECKING([for openssl])
     have_openssl=no
     case "$PKG_CONFIG" in
      '')
@@ -37,7 +37,11 @@ case "$enable_openssl" in
     AC_SUBST(OPENSSL_INCS)
     AC_SUBST(OPENSSL_LIBS)
     case "$have_openssl" in
-     yes)  AC_DEFINE(HAVE_OPENSSL, 1, [Define if the system has openssl]) ;;
+     yes)
+      AC_MSG_RESULT([yes ($OPENSSL_INCS $OPENSSL_LIBS)])
+      AC_DEFINE(HAVE_OPENSSL, 1, [Define if the system has openssl]) ;;
+     *)
+      AC_MSG_RESULT([no]) ;;
     esac
     ;;
 esac

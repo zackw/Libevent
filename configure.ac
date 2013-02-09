@@ -19,11 +19,11 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_DEFINE(NUMERIC_VERSION, 0x02010201, [Numeric representation of the version])
 
 dnl Additional configure options...
-LIBEVENT_DISABLE([gcc-warnings],
-                 [verbose warnings from GCC])
-LIBEVENT_ENABLE( [gcc-warnings-are-errors],
+LIBEVENT_DISABLE([extra-warnings],
+                 [additional warnings from GCC])
+LIBEVENT_ENABLE( [warnings-are-errors],
                  [making warnings into errors])
-LIBEVENT_ENABLE( [gcc-hardening],
+LIBEVENT_ENABLE( [hardening],
                  [compiler defenses against some security bugs])
 LIBEVENT_DISABLE([thread-support],
                  [support for multithreading])
@@ -117,121 +117,18 @@ AM_CONDITIONAL(PTHREAD, [test "$have_pthread" != "no"])
 LIBEVENT_ADD_CFLAGS([-fno-strict-aliasing])
 
 # GCC's "hardening" options (which defend against various overflows)
-if test $enable_gcc_hardening = yes; then
-  LIBEVENT_ADD_CFLAGS([hardening],
-    [-D_FORTIFY_SOURCE=2 -fwrapv -fPIE -fstack-protector-all \
-     -Wstack-protector '--param ssp-buffer-size=1'])
-fi
+LIBEVENT_HARDENING_CFLAGS([enable_hardening])
 
-# Enable warnings ...
-warnings_flags="-Wall"
+# Warnings, and lots of them.
+LIBEVENT_WARNING_CFLAGS([enable_extra_warnings])
 
-# OS X Lion started deprecating the system openssl. Let's just disable
-# all deprecation warnings on OS X.
-case "$host_os" in darwin*)
-    warnings_flags="$warnings_flags -Wno-deprecated-declarations"
-    ;;
-esac
-
-# Add some more warnings which we use in development but not in the
-# released versions.  (Some relevant gcc versions can't handle these.)
-if test $enable_gcc_warnings = yes; then
-  # LIBEVENT_ADD_CFLAGS doesn't detect all of the situations where
-  # using a warnings switch is unsafe.
-  have_gcc4=no
-  have_gcc42=no
-  have_gcc45=no
-  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
-#if !defined __GNUC__ || __GNUC__ < 4
-#error "not GCC >=4.0"
-#endif
-])], [
-  have_gcc4=yes
-  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 2
-#error "not GCC >= 4.2"
-#endif
-])], [
-  have_gcc42=yes
-  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 5
-#error "not GCC >= 4.5"
-#endif
-])], [
-  have_gcc45=yes
-])])])
-
-  have_clang=no
-  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
-#if !defined(__clang__)
-#error "not clang"
-#endif
-])], [
-  have_clang=yes
-])
-
-  # These are all known to be unproblematic if supported at all.
-  # We'd like to use -Winline but it will break the world on some 64-bit
-  # architectures.
-  warnings_flags="$warnings_flags \
-    -W \
-    -Wbad-function-cast \
-    -Wchar-subscripts \
-    -Wcomment \
-    -Wfloat-equal \
-    -Wformat \
-    -Wmissing-declarations \
-    -Wmissing-prototypes \
-    -Wnested-externs \
-    -Wpointer-arith \
-    -Wredundant-decls \
-    -Wstrict-prototypes \
-    -Wswitch-enum \
-    -Wundef \
-    -Wwrite-strings \
-    -Wstrict-aliasing \
-    -Wno-unused-parameter"
-
-  # These warnings work with gcc 4.0.2 and later
-  if test $have_gcc4 = yes; then
-    warnings_flags="$warnings_flags \
-      -Winit-self \
-      -Wmissing-field-initializers \
-      -Wdeclaration-after-statement"
-  fi
-
-  # These warnings work with gcc 4.2 and later
-  if test $have_gcc42 = yes; then
-    warnings_flags="$warnings_flags -Waddress"
-  fi
-
-  # These warnings work with gcc 4.2 and later, but not with clang
-  # (which tries to be feature-compatible with gcc).
-  if test $have_gcc42 = yes && test $have_clang = no; then
-    warnings_flags="$warnings_flags -Wnormalized=id -Woverride-init"
-  fi
-
-  # These warnings work with gcc 4.5 and later
-  if test $have_gcc45 = yes; then
-    warnings_flags="$warnings_flags -Wlogical-op"
-  fi
-
-  # Disable unused-function warnings for clang, because they trigger
-  # for minheap-internal.h related code.
-  if test $have_clang = yes; then
-    extra_warnings_flags="$extra_warnings_flags -Wno-unused-function"
-  fi
-fi
-LIBEVENT_ADD_CFLAGS([warnings], [$warnings_flags])
-
-# check if we should enable verbose debugging
+# Verbose debugging
 if test x$enable_verbose_debug = xyes; then
   CFLAGS="$CFLAGS -DUSE_DEBUG"
 fi
 
-if test "$GCC" = yes && test "$enable_function_sections" = yes ; then
-  LIBEVENT_CHECK_GC_SECTIONS
-fi
+# Section-per-function for smaller static builds
+LIBEVENT_FUNCTION_SECTIONS([enable_function_sections])
 
 dnl Done with everything that messes with CFLAGS (except one, see the
 dnl very bottom of the file).
@@ -690,14 +587,8 @@ AC_SUBST(OPENSSL_LIBADD)
 
 LIBEVENT_OPENSSL
 
-AM_CONDITIONAL(OPENSSL,
-  [test "$enable_openssl" != "no" && test "$have_openssl" = "yes"])
-
 # This must be done after everything else, because many of autoconf's
 # test programs provoke warnings.
-if test $enable_gcc_warnings_are_errors = yes; then
-  CFLAGS="$CFLAGS -Werror"
-  LTCFLAGS="$LTCFLAGS -Werror"
-fi
+LIBEVENT_WARNINGS_ARE_ERRORS([enable_warnings_are_errors])
 
 AC_OUTPUT

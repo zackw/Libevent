@@ -1,9 +1,10 @@
 # originally embedded in configure
 
-AC_DEFUN([LIBEVENT_CHECK_GC_SECTIONS],
+AC_DEFUN([LIBEVENT_FUNCTION_SECTIONS],
 [AC_LANG_ASSERT([C])
 AC_REQUIRE([AC_PROG_GREP])
 AC_REQUIRE([AC_PROG_CC])
+AS_VAR_IF([$1], [yes], [
 AC_CACHE_CHECK([whether omitting unused code and data is supported],
                 [libevent_cv_gc_sections_runs],
  [#  NetBSD will link but likely not run with --gc-sections
@@ -60,5 +61,6 @@ AS_IF([test "$libevent_cv_gc_sections_runs" = yes], [
   CFLAGS="-ffunction-sections -fdata-sections $CFLAGS"
   LIBEVENT_GC_SECTIONS="-Wl,--gc-sections"
 ])
-AC_SUBST([LIBEVENT_GC_SECTIONS])
+])
+AC_SUBST([LIBEVENT_GC_SECTIONS])dnl
 ])
