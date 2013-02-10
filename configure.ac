@@ -88,7 +88,6 @@ AC_CACHE_CHECK([for Windows], [ac_cv_sys_win32],
 #error "not WIN32"
 #endif
   ]])], [ac_cv_sys_win32=yes], [ac_cv_sys_win32=no])])
-bwin32=$ac_cv_sys_win32
 
 AC_CACHE_CHECK([for Cygwin], [ac_cv_sys_cygwin],
   [AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
@@ -97,13 +96,14 @@ AC_CACHE_CHECK([for Cygwin], [ac_cv_sys_cygwin],
 #endif
   ]])], [ac_cv_sys_cygwin=yes], [ac_cv_sys_cygwin=no])])
 
-AM_CONDITIONAL(BUILD_WIN32, test x$bwin32 = xtrue)
-AM_CONDITIONAL(BUILD_CYGWIN, test x$cygwin = xtrue)
-AM_CONDITIONAL(BUILD_WITH_NO_UNDEFINED, test x$bwin32 = xtrue || test x$cygwin = xtrue)
+AM_CONDITIONAL(BUILD_WIN32, test $ac_cv_sys_win32 = yes)
+AM_CONDITIONAL(BUILD_CYGWIN, test $ac_cv_sys_cygwin = yes)
+AM_CONDITIONAL(BUILD_WITH_NO_UNDEFINED,
+ [test $ac_cv_sys_cygwin = yes || test $ac_cv_sys_cygwin = yes])
 
 # check if we can compile with pthreads
 have_pthread=no
-if test $bwin32 != yes && test $enable_thread_support = yes; then
+if test $ac_cv_sys_win32 != yes && test $enable_thread_support = yes; then
   AX_PTHREAD
   if test x$ax_pthread_ok = xyes; then
     have_pthread=yes
@@ -326,7 +326,7 @@ LIBEVENT_FUNC_GETHOSTBYNAME_R
 
 needsignal=no
 haveselect=no
-if test x$bwin32 != xtrue; then
+if test $ac_cv_sys_win32 != yes; then
     AC_CHECK_FUNCS(select, [haveselect=yes], )
     if test "x$haveselect" = "xyes" ; then
  	needsignal=yes
@@ -364,7 +364,7 @@ if test "x$haveeventports" = "xyes" ; then
 fi
 AM_CONDITIONAL(EVPORT_BACKEND, [test "x$haveeventports" = "xyes"])
 
-if test "x$bwin32" = "xtrue"; then
+if test $ac_cv_sys_win32 = yes; then
 	needsignal=yes
 fi
 
@@ -376,8 +376,8 @@ AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_SEARCH_LIBS([sendfile], [sendfile])
 
-if test x$bwin32 = xtrue; then
-   AC_SEARCH_LIBS([getservbyname],[ws2_32])
+if test $ac_cv_sys_win32 = yes; then
+  AC_SEARCH_LIBS([getservbyname],[ws2_32])
 fi
 
 if test "x$ac_cv_header_zlib_h" = "xyes"; then
@@ -397,7 +397,7 @@ fi
 AM_CONDITIONAL(ZLIB_REGRESS, [test "$have_zlib" = "yes"])
 
 dnl See if we have openssl.  This doesn't go in LIBS either.
-if test "$bwin32" = true; then
+if test $ac_cv_sys_win32 = yes; then
   EV_LIB_WS32=-lws2_32
   EV_LIB_GDI=-lgdi32
 else
