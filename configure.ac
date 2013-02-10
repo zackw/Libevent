@@ -380,34 +380,7 @@ if test $ac_cv_sys_win32 = yes; then
   AC_SEARCH_LIBS([getservbyname],[ws2_32])
 fi
 
-if test "x$ac_cv_header_zlib_h" = "xyes"; then
-dnl Determine if we have zlib for regression tests
-dnl Don't put this one in LIBS
-save_LIBS="$LIBS"
-LIBS=""
-ZLIB_LIBS=""
-have_zlib=no
-AC_SEARCH_LIBS([inflateEnd], [z],
-	[have_zlib=yes
-	ZLIB_LIBS="$LIBS"
-	AC_DEFINE(HAVE_LIBZ, 1, [Define if the system has zlib])])
-LIBS="$save_LIBS"
-AC_SUBST(ZLIB_LIBS)
-fi
-AM_CONDITIONAL(ZLIB_REGRESS, [test "$have_zlib" = "yes"])
-
-dnl See if we have openssl.  This doesn't go in LIBS either.
-if test $ac_cv_sys_win32 = yes; then
-  EV_LIB_WS32=-lws2_32
-  EV_LIB_GDI=-lgdi32
-else
-  EV_LIB_WS32=
-  EV_LIB_GDI=
-fi
-AC_SUBST(EV_LIB_WS32)
-AC_SUBST(EV_LIB_GDI)
-AC_SUBST(OPENSSL_LIBADD)
-
+LIBEVENT_ZLIB
 LIBEVENT_OPENSSL
 
 # This must be done after everything else, because many of autoconf's
