@@ -56,3 +56,127 @@ AC_DEFUN([LIBEVENT_FUNC_GETHOSTBYNAME_R],
           [Define to 1 if you have a `gethostbyname_r' with 5 arguments.])],
    [3], [AC_DEFINE([HAVE_GETHOSTBYNAME_R_3_ARG], [1],
           [Define to 1 if you have a `gethostbyname_r' with 3 arguments.])])])
+
+# Check for a fully operational kqueue.
+AC_DEFUN([LIBEVENT_FUNC_KQUEUE_WORKS],
+ [if test "${ac_cv_header_sys_event_h+set}" != set; then
+    AC_CHECK_HEADERS([sys/event.h])
+  fi
+  if test "${ac_cv_func_kqueue+set}" != set; then
+    AC_CHECK_FUNCS([kqueue])
+  fi
+  if test $ac_cv_header_sys_event_h != yes || \
+     test $ac_cv_func_kqueue != yes; then
+    libevent_cv_func_kqueue_works=no
+  else
+    AC_CACHE_CHECK([whether kqueue works correctly with pipes],
+                   [libevent_cv_func_kqueue_works],
+     [AC_RUN_IFELSE([AC_LANG_SOURCE([[
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/event.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int
+main(void)
+{
+	int kq;
+	int n;
+	int fd[2];
+	struct kevent ev;
+	struct timespec ts;
+	char buf[8000];
+
+	if (pipe(fd) == -1)
+		return 1;
+	if (fcntl(fd[1], F_SETFL, O_NONBLOCK) == -1)
+		return 1;
+
+	while ((n = write(fd[1], buf, sizeof(buf))) == sizeof(buf))
+		;
+
+        if ((kq = kqueue()) == -1)
+		return 1;
+
+	memset(&ev, 0, sizeof(ev));
+	ev.ident = fd[1];
+	ev.filter = EVFILT_WRITE;
+	ev.flags = EV_ADD | EV_ENABLE;
+	n = kevent(kq, &ev, 1, NULL, 0, NULL);
+	if (n == -1)
+		return 1;
+
+	read(fd[0], buf, sizeof(buf));
+
+	ts.tv_sec = 0;
+	ts.tv_nsec = 0;
+	n = kevent(kq, NULL, 0, &ev, 1, &ts);
+	if (n == -1 || n == 0)
+		return 1;
+
+	return 0;
+}
+]])],
+       [libevent_cv_func_kqueue_works=yes],
+       [libevent_cv_func_kqueue_works=no],
+       [# when cross compiling
+        libevent_cv_func_kqueue_works=no])])
+  fi
+  if test $libevent_cv_func_kqueue_works = yes; then
+    AC_DEFINE([HAVE_WORKING_KQUEUE], [1],
+              [Define if kqueue works correctly with pipes.])
+  fi])
+
+# Check for kernel and C library support for epoll.
+AC_DEFUN([LIBEVENT_FUNC_EPOLL],
+ [if test "${ac_cv_header_sys_epoll_h+set}" != set; then
+    AC_CHECK_HEADERS([sys/epoll.h])
+  fi
+  if test "${ac_cv_func_epoll_ctl+set}" != set; then
+    AC_CHECK_FUNCS([epoll_ctl])
+  fi
+  haveepoll=no
+  if test $ac_cv_header_sys_epoll_h = yes; then
+    if test $ac_cv_func_epoll_ctl = yes; then
+      haveepoll=yes
+    else
+      AC_CACHE_CHECK([for epoll system calls], [libevent_cv_syscall_epoll],
+       [AC_RUN_IFELSE([AC_LANG_SOURCE([[
+#include <stdint.h>
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+
+int
+epoll_create(int size)
+{
+	return (syscall(__NR_epoll_create, size));
+}
+
+int
+main(int argc, char **argv)
+{
+	int epfd;
+
+	epfd = epoll_create(256);
+	return (epfd == -1) ? 1 : 0;
+}
+]])],
+       [libevent_cv_syscall_epoll=yes],
+       [libevent_cv_syscall_epoll=no],
+       [# when cross compiling
+        libevent_cv_syscall_epoll=no])])
+      if test $ac_cv_syscall_epoll = yes; then
+        haveepoll=yes
+        AC_LIBOBJ([epoll_sub])
+      fi
+    fi
+  fi
+  if test $haveepoll = yes; then
+    AC_DEFINE([HAVE_EPOLL], [1],
+              [Define if your system supports the `epoll' interface.])
+  fi])

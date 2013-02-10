@@ -348,105 +348,11 @@ if test "x$ac_cv_header_sys_devpoll_h" = "xyes"; then
 fi
 AM_CONDITIONAL(DEVPOLL_BACKEND, [test "x$ac_cv_header_sys_devpoll_h" = "xyes"])
 
-havekqueue=no
-if test "x$ac_cv_header_sys_event_h" = "xyes"; then
-	AC_CHECK_FUNCS(kqueue, [havekqueue=yes], )
-	if test "x$havekqueue" = "xyes" ; then
-		AC_MSG_CHECKING(for working kqueue)
-		AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/event.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-int
-main(int argc, char **argv)
-{
-	int kq;
-	int n;
-	int fd[2];
-	struct kevent ev;
-	struct timespec ts;
-	char buf[8000];
-
-	if (pipe(fd) == -1)
-		exit(1);
-	if (fcntl(fd[1], F_SETFL, O_NONBLOCK) == -1)
-		exit(1);
-
-	while ((n = write(fd[1], buf, sizeof(buf))) == sizeof(buf))
-		;
-
-        if ((kq = kqueue()) == -1)
-		exit(1);
-
-	memset(&ev, 0, sizeof(ev));
-	ev.ident = fd[1];
-	ev.filter = EVFILT_WRITE;
-	ev.flags = EV_ADD | EV_ENABLE;
-	n = kevent(kq, &ev, 1, NULL, 0, NULL);
-	if (n == -1)
-		exit(1);
-
-	read(fd[0], buf, sizeof(buf));
-
-	ts.tv_sec = 0;
-	ts.tv_nsec = 0;
-	n = kevent(kq, NULL, 0, &ev, 1, &ts);
-	if (n == -1 || n == 0)
-		exit(1);
-
-	exit(0);
-}]])],[AC_MSG_RESULT(yes)
-    AC_DEFINE(HAVE_WORKING_KQUEUE, 1,
-		[Define if kqueue works correctly with pipes])
-    havekqueue=yes
-    ],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
-	fi
-fi
+LIBEVENT_FUNC_KQUEUE_WORKS
+havekqueue=$libevent_cv_func_kqueue_works
 AM_CONDITIONAL(KQUEUE_BACKEND, [test "x$havekqueue" = "xyes"])
 
-haveepollsyscall=no
-haveepoll=no
-AC_CHECK_FUNCS(epoll_ctl, [haveepoll=yes], )
-if test "x$haveepoll" = "xyes" ; then
-	AC_DEFINE(HAVE_EPOLL, 1,
-		[Define if your system supports the epoll system calls])
-	needsignal=yes
-fi
-if test "x$ac_cv_header_sys_epoll_h" = "xyes"; then
-	if test "x$haveepoll" = "xno" ; then
-		AC_MSG_CHECKING(for epoll system call)
-		AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdint.h>
-#include <sys/param.h>
-#include <sys/types.h>
-#include <sys/syscall.h>
-#include <sys/epoll.h>
-#include <unistd.h>
-
-int
-epoll_create(int size)
-{
-	return (syscall(__NR_epoll_create, size));
-}
-
-int
-main(int argc, char **argv)
-{
-	int epfd;
-
-	epfd = epoll_create(256);
-	exit (epfd == -1 ? 1 : 0);
-}]])],[AC_MSG_RESULT(yes)
-    AC_DEFINE(HAVE_EPOLL, 1,
-	[Define if your system supports the epoll system calls])
-    needsignal=yes
-    have_epoll=yes
-    AC_LIBOBJ(epoll_sub)
-    ],[AC_MSG_RESULT(no)],[AC_MSG_RESULT(no)])
-	fi
-fi
+LIBEVENT_FUNC_EPOLL
 AM_CONDITIONAL(EPOLL_BACKEND, [test "x$haveepoll" = "xyes"])
 
 haveeventports=no
