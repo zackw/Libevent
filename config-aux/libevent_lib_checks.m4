@@ -34,10 +34,10 @@ if test $enable_openssl = yes; then
   else
     OPENSSL_WIN32=
   fi
-  AS_VAR_SET_IF([PKG_CONFIG],
+  AS_IF([test x"$PKG_CONFIG" != x],
    [OPENSSL_INCS=`$PKG_CONFIG --cflags openssl 2>/dev/null | $SED -e 's/^ *//; s/ *$//'`
     OPENSSL_LIBS=`$PKG_CONFIG --libs openssl 2>/dev/null | $SED -e 's/^ *//; s/ *$//'`
-     AS_VAR_SET_IF([OPENSSL_LIBS],
+     AS_IF([test x"$OPENSSL_LIBS" != x],
       [OPENSSL_LIBS="$OPENSSL_LIBS$OPENSSL_WIN32${OPENSSL_LIBADD:+ }$OPENSSL_LIBADD"
        have_openssl=yes])])
   if test $have_openssl = no; then
@@ -45,6 +45,7 @@ if test $enable_openssl = yes; then
     LIBS=
     AC_SEARCH_LIBS([SSL_new], [ssl],
      [have_openssl=yes
+      LIBS=`echo $LIBS | sed 's/^ *//; s/ *$//'`
       OPENSSL_LIBS="$LIBS${LIBS:+ }-lcrypto$OPENSSL_WIN32${OPENSSL_LIBADD:+ }$OPENSSL_LIBADD"],
      [have_openssl=no],
      [-lcrypto $OPENSSL_WIN32 $OPENSSL_LIBADD])
