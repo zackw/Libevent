@@ -206,10 +206,11 @@ AC_CHECK_TYPES([fd_mask], , ,
 #include <sys/select.h>
 #endif])
 
-AC_CHECK_TYPES([struct in6_addr,
-                struct sockaddr_in6,
-                sa_family_t,
+AC_CHECK_TYPES([sa_family_t,
+                socklen_t,
                 struct addrinfo,
+                struct in6_addr,
+                struct sockaddr_in6,
                 struct sockaddr_storage], , ,
 [#define _GNU_SOURCE
 #include <sys/types.h>
@@ -262,18 +263,6 @@ AC_CHECK_MEMBERS([struct sockaddr_in.sin_len,
 #include <ws2tcpip.h>
 #endif
 #endif
-])
-
-AC_MSG_CHECKING([for socklen_t])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
- #include <sys/types.h>
- #include <sys/socket.h>
-]],
- [[socklen_t x;]])],
- [AC_MSG_RESULT(yes)],
- [AC_MSG_RESULT([no])
-  AC_DEFINE(socklen_t, unsigned int,
-            [Define to unsigned int if you dont have it])
 ])
 
 AC_CHECK_SIZEOF(long long)

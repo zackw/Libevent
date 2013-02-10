@@ -263,12 +263,12 @@ extern "C" {
 #define EV_SSIZE_MIN ((-EV_SSIZE_MAX) - 1)
 /**@}*/
 
-#ifdef _WIN32
-#define ev_socklen_t int
-#elif defined(EVENT__socklen_t)
-#define ev_socklen_t EVENT__socklen_t
-#else
+#ifdef EVENT__HAVE_SOCKLEN_T
 #define ev_socklen_t socklen_t
+#elif defined _WIN32
+#define ev_socklen_t int  /* needs to be signed on Windows why? */
+#else
+#define ev_socklen_t unsigned int
 #endif
 
 #ifdef EVENT__HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY
