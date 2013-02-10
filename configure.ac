@@ -321,80 +321,8 @@ AC_CHECK_FUNCS([ \
 
 AC_REPLACE_FUNCS([strlcpy])
 
-AC_CACHE_CHECK(
-    [for getaddrinfo],
-    [libevent_cv_getaddrinfo],
-    [AC_LINK_IFELSE(
-	[AC_LANG_PROGRAM(
-	    [[
-		#ifdef HAVE_NETDB_H
-		#include <netdb.h>
-		#endif
-	    ]],
-	    [[
-		getaddrinfo;
-	    ]]
-	)],
-	[libevent_cv_getaddrinfo=yes],
-	[libevent_cv_getaddrinfo=no]
-    )]
-)
-if test "$libevent_cv_getaddrinfo" = "yes" ; then
-    AC_DEFINE([HAVE_GETADDRINFO], [1], [Do we have getaddrinfo()?])
-else
-
-# Check for gethostbyname_r in all its glorious incompatible versions.
-#   (This is cut-and-pasted from Tor, which based its logic on
-#   Python's configure.in.)
-
-AC_CHECK_FUNC(gethostbyname_r, [
-  AC_MSG_CHECKING([how many arguments gethostbyname_r() wants])
-  OLD_CFLAGS=$CFLAGS
-  CFLAGS="$CFLAGS $MY_CPPFLAGS $MY_THREAD_CPPFLAGS $MY_CFLAGS"
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-#include <netdb.h>
-  ], [[
-    char *cp1, *cp2;
-    struct hostent *h1, *h2;
-    int i1, i2;
-    (void)gethostbyname_r(cp1,h1,cp2,i1,&h2,&i2);
-  ]])],[
-    AC_DEFINE(HAVE_GETHOSTBYNAME_R_6_ARG, 1,
-     [Define this if gethostbyname_r takes 6 arguments])
-    AC_MSG_RESULT(6)
-  ], [
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include <netdb.h>
-    ]], [[
-      char *cp1, *cp2;
-      struct hostent *h1;
-      int i1, i2;
-      (void)gethostbyname_r(cp1,h1,cp2,i1,&i2);
-    ]])],[
-      AC_DEFINE(HAVE_GETHOSTBYNAME_R_5_ARG, 1,
-        [Define this if gethostbyname_r takes 5 arguments])
-      AC_MSG_RESULT(5)
-   ],[
-      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include <netdb.h>
-     ]], [[
-       char *cp1;
-       struct hostent *h1;
-       struct hostent_data hd;
-       (void) gethostbyname_r(cp1,h1,&hd);
-     ]])], [
-       AC_DEFINE(HAVE_GETHOSTBYNAME_R_3_ARG, 1,
-         [Define this if gethostbyname_r takes 3 arguments])
-       AC_MSG_RESULT(3)
-     ], [
-       AC_MSG_RESULT(0)
-     ])
-  ])
- ])
- CFLAGS=$OLD_CFLAGS
-])
-
-fi
+LIBEVENT_FUNC_GETADDRINFO
+LIBEVENT_FUNC_GETHOSTBYNAME_R
 
 needsignal=no
 haveselect=no
