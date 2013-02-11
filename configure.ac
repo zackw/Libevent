@@ -4,14 +4,18 @@ dnl
 dnl See LICENSE for copying information.
 dnl
 dnl Original version Dug Song <dugsong@monkey.org>
-
-dnl we use lots of custom macros beginning with this prefix
+dnl
+dnl This is what ships with OpenIndiana as of 2013-02-11.
+dnl Older may still work but has not been tested.
+AC_PREREQ([2.63])dnl
+dnl
+dnl We use lots of custom macros beginning with this prefix.
 m4_pattern_forbid([LIBEVENT_])dnl
-
+dnl
 AC_INIT([libevent],[2.1.2-alpha-dev])
 AC_DEFINE(NUMERIC_VERSION, 0x02010201, [Numeric representation of the version])
 
-AC_PREREQ([2.59])
+# Source directory configuration.
 AC_CONFIG_SRCDIR(event.c)
 AC_CONFIG_AUX_DIR([config-aux])
 AC_CONFIG_MACRO_DIR([config-aux])
@@ -46,8 +50,8 @@ LIBEVENT_ENABLE_BACKENDS
 # use of AM_CONDITIONAL, but does slow tests and therefore should go
 # after all command line validation.
 AM_INIT_AUTOMAKE
-dnl AM_SILENT_RULES req. automake 1.11.  [no] defaults V=1
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+dnl AM_SILENT_RULES req. automake 1.11; OI ships 1.10.
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([no])])
 
 if test $enable_thread_support = no; then
    AC_DEFINE(DISABLE_THREAD_SUPPORT, 1,
@@ -74,7 +78,7 @@ AC_CANONICAL_HOST
 
 dnl Checks for programs.
 dnl mkdir -p handled by AM_INIT_AUTOMAKE
-dnl sed handled by LT_INIT
+dnl sed handled by AC_PROG_LIBTOOL
 dnl pkg-config 0.15.0 may not be strictly necessary, but it's what we
 dnl were looking for before
 AM_PROG_CC_C_O
@@ -142,7 +146,9 @@ LIBEVENT_FUNCTION_SECTIONS([enable_function_sections])
 
 dnl Done with everything that messes with CFLAGS (except one, see the
 dnl very bottom of the file).
-LT_INIT
+dnl OpenIndiana ships a libtool.m4 which doesn't know LT_INIT, despite its
+dnl purporting to be from 2005. *sigh*
+AC_PROG_LIBTOOL
 
 # Checks for characteristics of the compiler.
 AC_C_INLINE
