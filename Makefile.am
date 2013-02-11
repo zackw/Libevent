@@ -284,7 +284,7 @@ else
 noinst_HEADERS += $(EVENT1_HDRS)
 endif
 
-AM_CPPFLAGS = -I$(srcdir)/compat -I$(srcdir)/include -I./include $(SYS_INCLUDES)
+AM_CPPFLAGS = -I$(srcdir)/include -I./include $(SYS_INCLUDES)
 
 verify: check
 
@@ -293,4 +293,3 @@ doxygen: FORCE
 FORCE:
 
 DISTCLEANFILES = *~ libevent.pc ./include/event2/event-config.h
-
