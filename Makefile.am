@@ -156,27 +156,28 @@ SYS_INCLUDES =
 
 endif
 
-if SELECT_BACKEND
+if BACKEND_SELECT
 SYS_SRC += select.c
 endif
-if POLL_BACKEND
+if BACKEND_POLL
 SYS_SRC += poll.c
 endif
-if DEVPOLL_BACKEND
+if BACKEND_DEVPOLL
 SYS_SRC += devpoll.c
 endif
-if KQUEUE_BACKEND
+if BACKEND_KQUEUE
 SYS_SRC += kqueue.c
 endif
-if EPOLL_BACKEND
+if BACKEND_EPOLL
 SYS_SRC += epoll.c
 endif
-if EVPORT_BACKEND
+if BACKEND_EVPORT
 SYS_SRC += evport.c
 endif
-if SIGNAL_SUPPORT
+if BACKEND_NEED_SIGNAL
 SYS_SRC += signal.c
 endif
+# BACKEND_WIN32 is covered by BUILD_WIN32
 
 BUILT_SOURCES += include/event2/event-config.h
 

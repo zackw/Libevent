@@ -27,8 +27,6 @@
 #include "event2/event-config.h"
 #include "evconfig-private.h"
 
-#ifdef EVENT__HAVE_DEVPOLL
-
 #include <sys/types.h>
 #include <sys/resource.h>
 #ifdef EVENT__HAVE_SYS_TIME_H
@@ -306,5 +304,3 @@ devpoll_dealloc(struct event_base *base)
 	memset(devpollop, 0, sizeof(struct devpollop));
 	mm_free(devpollop);
 }
-
-#endif /* EVENT__HAVE_DEVPOLL */

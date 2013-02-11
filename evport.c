@@ -56,8 +56,6 @@
 #include "event2/event-config.h"
 #include "evconfig-private.h"
 
-#ifdef EVENT__HAVE_EVENT_PORTS
-
 #include <sys/time.h>
 #include <errno.h>
 #include <poll.h>
@@ -446,5 +444,3 @@ evport_dealloc(struct event_base *base)
 
 	mm_free(evpd);
 }
-
-#endif /* EVENT__HAVE_EVENT_PORTS */

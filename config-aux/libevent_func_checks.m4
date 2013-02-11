@@ -137,10 +137,10 @@ AC_DEFUN([LIBEVENT_FUNC_EPOLL],
   if test "${ac_cv_func_epoll_ctl+set}" != set; then
     AC_CHECK_FUNCS([epoll_ctl])
   fi
-  haveepoll=no
+  libevent_have_epoll=no
   if test $ac_cv_header_sys_epoll_h = yes; then
     if test $ac_cv_func_epoll_ctl = yes; then
-      haveepoll=yes
+      libevent_have_epoll=yes
     else
       AC_CACHE_CHECK([for epoll system calls], [libevent_cv_syscall_epoll],
        [AC_RUN_IFELSE([AC_LANG_SOURCE([[
@@ -171,12 +171,12 @@ main(int argc, char **argv)
        [# when cross compiling
         libevent_cv_syscall_epoll=no])])
       if test $ac_cv_syscall_epoll = yes; then
-        haveepoll=yes
+        libevent_have_epoll=yes
         AC_LIBOBJ([epoll_sub])
       fi
     fi
   fi
-  if test $haveepoll = yes; then
+  if test $libevent_have_epoll = yes; then
     AC_DEFINE([HAVE_EPOLL], [1],
               [Define if your system supports the `epoll' interface.])
   fi])

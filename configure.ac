@@ -5,7 +5,12 @@ dnl See LICENSE for copying information.
 dnl
 dnl Original version Dug Song <dugsong@monkey.org>
 
+dnl we use lots of custom macros beginning with this prefix
+m4_pattern_forbid([LIBEVENT_])dnl
+
 AC_INIT([libevent],[2.1.2-alpha-dev])
+AC_DEFINE(NUMERIC_VERSION, 0x02010201, [Numeric representation of the version])
+
 AC_PREREQ([2.59])
 AC_CONFIG_SRCDIR(event.c)
 AC_CONFIG_AUX_DIR([config-aux])
@@ -13,12 +18,8 @@ AC_CONFIG_MACRO_DIR([config-aux])
 AC_CONFIG_HEADERS([config.h  evconfig-private.h:evconfig-private.h.in])
 AC_CONFIG_FILES([libevent.pc libevent_openssl.pc libevent_pthreads.pc
                  Makefile])
-AM_INIT_AUTOMAKE
-dnl AM_SILENT_RULES req. automake 1.11.  [no] defaults V=1
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
-AC_DEFINE(NUMERIC_VERSION, 0x02010201, [Numeric representation of the version])
 
-dnl Additional configure options...
+# Additional configure option processing.
 LIBEVENT_DISABLE([extra-warnings],
                  [additional warnings from GCC])
 LIBEVENT_ENABLE( [warnings-are-errors],
@@ -38,6 +39,15 @@ LIBEVENT_DISABLE([libevent-regress], [regression tests])
 LIBEVENT_ENABLE( [function-sections],
            [compiler options for smaller static binaries (with --gc-sections)])
 LIBEVENT_ENABLE( [verbose-debug], [verbose debug logging])
+
+LIBEVENT_ENABLE_BACKENDS
+
+# Further initialization.  AM_INIT_AUTOMAKE has to go before any
+# use of AM_CONDITIONAL, but does slow tests and therefore should go
+# after all command line validation.
+AM_INIT_AUTOMAKE
+dnl AM_SILENT_RULES req. automake 1.11.  [no] defaults V=1
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 if test $enable_thread_support = no; then
    AC_DEFINE(DISABLE_THREAD_SUPPORT, 1,
@@ -303,7 +313,10 @@ AC_CHECK_FUNCS([ \
   nanosleep \
   pipe \
   pipe2 \
+  poll \
+  port_create \
   putenv \
+  select \
   sendfile \
   setenv \
   setrlimit \
@@ -323,52 +336,8 @@ AC_REPLACE_FUNCS([strlcpy])
 
 LIBEVENT_FUNC_GETADDRINFO
 LIBEVENT_FUNC_GETHOSTBYNAME_R
-
-needsignal=no
-haveselect=no
-if test $ac_cv_sys_win32 != yes; then
-    AC_CHECK_FUNCS(select, [haveselect=yes], )
-    if test "x$haveselect" = "xyes" ; then
- 	needsignal=yes
-    fi
-fi
-AM_CONDITIONAL(SELECT_BACKEND, [test "x$haveselect" = "xyes"])
-
-havepoll=no
-AC_CHECK_FUNCS(poll, [havepoll=yes], )
-if test "x$havepoll" = "xyes" ; then
-	needsignal=yes
-fi
-AM_CONDITIONAL(POLL_BACKEND, [test "x$havepoll" = "xyes"])
-
-havedevpoll=no
-if test "x$ac_cv_header_sys_devpoll_h" = "xyes"; then
-	AC_DEFINE(HAVE_DEVPOLL, 1,
-		    [Define if /dev/poll is available])
-fi
-AM_CONDITIONAL(DEVPOLL_BACKEND, [test "x$ac_cv_header_sys_devpoll_h" = "xyes"])
-
 LIBEVENT_FUNC_KQUEUE_WORKS
-havekqueue=$libevent_cv_func_kqueue_works
-AM_CONDITIONAL(KQUEUE_BACKEND, [test "x$havekqueue" = "xyes"])
-
 LIBEVENT_FUNC_EPOLL
-AM_CONDITIONAL(EPOLL_BACKEND, [test "x$haveepoll" = "xyes"])
-
-haveeventports=no
-AC_CHECK_FUNCS(port_create, [haveeventports=yes], )
-if test "x$haveeventports" = "xyes" ; then
-	AC_DEFINE(HAVE_EVENT_PORTS, 1,
-		[Define if your system supports event ports])
-	needsignal=yes
-fi
-AM_CONDITIONAL(EVPORT_BACKEND, [test "x$haveeventports" = "xyes"])
-
-if test $ac_cv_sys_win32 = yes; then
-	needsignal=yes
-fi
-
-AM_CONDITIONAL(SIGNAL_SUPPORT, [test "x$needsignal" = "xyes"])
 
 # Checks for libraries.
 AC_SEARCH_LIBS([inet_ntoa], [nsl])
@@ -382,6 +351,22 @@ fi
 
 LIBEVENT_ZLIB
 LIBEVENT_OPENSSL
+
+# Backend selection.  Done after all probes, since it depends on the
+# results of many probes.
+
+LIBEVENT_BACKEND([select],
+  [test $ac_cv_sys_win32 = no && test $ac_cv_func_select = yes],
+  [needsignal])
+
+LIBEVENT_BACKEND([poll],    [test $ac_cv_func_poll = yes], [needsignal])
+LIBEVENT_BACKEND([devpoll], [test $ac_cv_header_sys_devpoll_h = yes])
+LIBEVENT_BACKEND([evport],  [test $ac_cv_func_port_create = yes])
+LIBEVENT_BACKEND([kqueue],  [test $libevent_cv_func_kqueue_works = yes])
+LIBEVENT_BACKEND([epoll],   [test $libevent_have_epoll = yes], [needsignal])
+LIBEVENT_BACKEND([win32],   [test $ac_cv_sys_win32 = yes], [needsignal])
+
+LIBEVENT_FINALIZE_BACKENDS
 
 # This must be done after everything else, because many of autoconf's
 # test programs provoke warnings.

@@ -69,53 +69,39 @@
 #include "util-internal.h"
 #include "event2/qutil.h"
 
-#ifdef EVENT__HAVE_WORKING_KQUEUE
+#ifdef EVENT__BACKEND_KQUEUE
 #include "kqueue-internal.h"
 #endif
 
-#ifdef EVENT__HAVE_EVENT_PORTS
 extern const struct eventop evportops;
-#endif
-#ifdef EVENT__HAVE_SELECT
 extern const struct eventop selectops;
-#endif
-#ifdef EVENT__HAVE_POLL
 extern const struct eventop pollops;
-#endif
-#ifdef EVENT__HAVE_EPOLL
 extern const struct eventop epollops;
-#endif
-#ifdef EVENT__HAVE_WORKING_KQUEUE
 extern const struct eventop kqops;
-#endif
-#ifdef EVENT__HAVE_DEVPOLL
 extern const struct eventop devpollops;
-#endif
-#ifdef _WIN32
 extern const struct eventop win32ops;
-#endif
 
 /* Array of backends in order of preference. */
 static const struct eventop *eventops[] = {
-#ifdef EVENT__HAVE_EVENT_PORTS
+#ifdef EVENT__BACKEND_EVPORT
 	&evportops,
 #endif
-#ifdef EVENT__HAVE_WORKING_KQUEUE
+#ifdef EVENT__BACKEND_KQUEUE
 	&kqops,
 #endif
-#ifdef EVENT__HAVE_EPOLL
+#ifdef EVENT__BACKEND_EPOLL
 	&epollops,
 #endif
-#ifdef EVENT__HAVE_DEVPOLL
+#ifdef EVENT__BACKEND_DEVPOLL
 	&devpollops,
 #endif
-#ifdef EVENT__HAVE_POLL
+#ifdef EVENT__BACKEND_POLL
 	&pollops,
 #endif
-#ifdef EVENT__HAVE_SELECT
+#ifdef EVENT__BACKEND_SELECT
 	&selectops,
 #endif
-#ifdef _WIN32
+#ifdef EVENT__BACKEND_WIN32
 	&win32ops,
 #endif
 	NULL
@@ -3211,7 +3197,7 @@ evthread_make_base_notifiable_nolock_(struct event_base *base)
 		return 0;
 	}
 
-#if defined(EVENT__HAVE_WORKING_KQUEUE)
+#ifdef EVENT__BACKEND_KQUEUE
 	if (base->evsel == &kqops && event_kq_add_notify_event_(base) == 0) {
 		base->th_notify_fn = event_kq_notify_base_;
 		/* No need to add an event here; the backend can wake
