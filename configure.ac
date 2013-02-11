@@ -362,7 +362,7 @@ LIBEVENT_BACKEND([select],
 LIBEVENT_BACKEND([poll],    [test $ac_cv_func_poll = yes], [needsignal])
 LIBEVENT_BACKEND([devpoll], [test $ac_cv_header_sys_devpoll_h = yes])
 LIBEVENT_BACKEND([evport],  [test $ac_cv_func_port_create = yes])
-LIBEVENT_BACKEND([kqueue],  [test $libevent_cv_func_kqueue_works = yes])
+LIBEVENT_BACKEND([kqueue],  [test $libevent_cv_func_kqueue_works = yes], [needsignal])
 LIBEVENT_BACKEND([epoll],   [test $libevent_have_epoll = yes], [needsignal])
 LIBEVENT_BACKEND([win32],   [test $ac_cv_sys_win32 = yes], [needsignal])
 
