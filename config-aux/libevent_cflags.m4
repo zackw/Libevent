@@ -49,14 +49,14 @@
 #serial 1
 
 AC_DEFUN([LIBEVENT_ADD_CFLAGS],
-[m4_ifnblank($2,
- [AC_MSG_CHECKING([$1 flags supported by $[]_AC_CC])],
+[m4_ifval($2,
+ [AC_MSG_CHECKING([$1 flags supported by the compiler])],
  [m4_bmatch($1, [ ],
-   [AC_MSG_CHECKING([flags supported by $[]_AC_CC])],
-   [AC_MSG_CHECKING([whether $[]_AC_CC supports $1])])])
+   [AC_MSG_CHECKING([flags supported by the compiler])],
+   [AC_MSG_CHECKING([whether the compiler supports $1])])])
 _save_flags="$[]_AC_LANG_PREFIX[]FLAGS"
 _good_flags=
-for flag in m4_ifnblank($2, $2, $1); do
+for flag in m4_ifval($2, $2, $1); do
   # for clang, need -Werror to catch unsupported flags
   _AC_LANG_PREFIX[]FLAGS="-Werror $flag"
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
@@ -64,12 +64,12 @@ for flag in m4_ifnblank($2, $2, $1); do
 done
 _AC_LANG_PREFIX[]FLAGS="$_save_flags"
 AS_IF([test x"$_good_flags" = x""],
-  [m4_ifnblank($2,
+  [m4_ifval($2,
     [AC_MSG_RESULT([none])],
     [m4_bmatch($1, [ ],
       [AC_MSG_RESULT([none])],
       [AC_MSG_RESULT([no])])])],
-  [m4_ifnblank($2,
+  [m4_ifval($2,
     [AC_MSG_RESULT([$_good_flags])],
     [m4_bmatch($1, [ ],
       [AC_MSG_RESULT([$_good_flags])],

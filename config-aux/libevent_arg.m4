@@ -58,7 +58,7 @@ AS_IF([$2],
    AS_CASE([,$enable_backends,], [*,$1,*],
     [selected_backends="$selected_backends $1"
      m4_shvar([backend_$1])=yes
-     m4_ifnblank([$3], [backend_need_signal=yes])
+     m4_ifvaln([$3], [backend_need_signal=yes])dnl
      AC_DEFINE(BACKEND_[]m4_toupper($1), [1],
                [Define to enable the $1 backend.])])])
 AM_CONDITIONAL(BACKEND_[]m4_toupper($1), [test $[]m4_shvar([backend_$1]) = yes])
