@@ -78,12 +78,13 @@ AC_CANONICAL_HOST
 
 dnl Checks for programs.
 dnl mkdir -p handled by AM_INIT_AUTOMAKE
-dnl sed handled by AC_PROG_LIBTOOL
+dnl sed is *not* handled by AC_PROG_LIBTOOL (but would be by LT_INIT)
 dnl pkg-config 0.15.0 may not be strictly necessary, but it's what we
 dnl were looking for before
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_LN_S
+AC_PROG_SED
 PKG_PROG_PKG_CONFIG([0.15.0])
 
 # Set up the compilation environment.  Must come before any compile
@@ -228,8 +229,7 @@ AC_CHECK_TYPES([sa_family_t,
                 struct in6_addr,
                 struct sockaddr_in6,
                 struct sockaddr_storage], , ,
-[#define _GNU_SOURCE
-#include <sys/types.h>
+[#include <sys/types.h>
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -366,8 +366,8 @@ LIBEVENT_BACKEND([select],
   [needsignal])
 
 LIBEVENT_BACKEND([poll],    [test $ac_cv_func_poll = yes], [needsignal])
-LIBEVENT_BACKEND([devpoll], [test $ac_cv_header_sys_devpoll_h = yes])
-LIBEVENT_BACKEND([evport],  [test $ac_cv_func_port_create = yes])
+LIBEVENT_BACKEND([devpoll], [test $ac_cv_header_sys_devpoll_h = yes], [needsignal])
+LIBEVENT_BACKEND([evport],  [test $ac_cv_func_port_create = yes], [needsignal])
 LIBEVENT_BACKEND([kqueue],  [test $libevent_cv_func_kqueue_works = yes], [needsignal])
 LIBEVENT_BACKEND([epoll],   [test $libevent_have_epoll = yes], [needsignal])
 LIBEVENT_BACKEND([win32],   [test $ac_cv_sys_win32 = yes], [needsignal])
