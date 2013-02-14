@@ -23,8 +23,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -33,7 +33,7 @@
 #undef WIN32_LEAN_AND_MEAN
 #endif
 #include <sys/types.h>
-#if !defined(_WIN32) && defined(EVENT__HAVE_SYS_TIME_H)
+#if !defined(_WIN32) && defined(HAVE_SYS_TIME_H)
 #include <sys/time.h>
 #endif
 #include <stdio.h>

@@ -24,7 +24,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "../util-internal.h"
+
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -32,11 +33,9 @@
 #include <ws2tcpip.h>
 #endif
 
-#include "event2/event-config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #ifndef _WIN32
@@ -46,7 +45,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif
-#ifdef EVENT__HAVE_NETINET_IN6_H
+#ifdef HAVE_NETINET_IN6_H
 #include <netinet/in6.h>
 #endif
 #ifdef HAVE_NETDB_H
@@ -68,6 +67,8 @@
 #include "event2/listener.h"
 #include "event2/bufferevent.h"
 #include "log-internal.h"
+#include "util-internal.h"
+
 #include "regress.h"
 #include "regress_testutils.h"
 
@@ -97,7 +98,7 @@ dns_gethostbyname_cb(int result, char type, int count, int ttl,
 
 	switch (type) {
 	case DNS_IPv6_AAAA: {
-#if defined(EVENT__HAVE_STRUCT_IN6_ADDR) && defined(EVENT__HAVE_INET_NTOP) && defined(INET6_ADDRSTRLEN)
+#if defined(HAVE_STRUCT_IN6_ADDR) && defined(HAVE_INET_NTOP) && defined(INET6_ADDRSTRLEN)
 		struct in6_addr *in6_addrs = addresses;
 		char buf[INET6_ADDRSTRLEN+1];
 		int i;
@@ -318,7 +319,7 @@ dns_server_gethostbyname_cb(int result, char type, int count, int ttl,
 		break;
 	}
 	case DNS_IPv6_AAAA: {
-#if defined (EVENT__HAVE_STRUCT_IN6_ADDR) && defined(EVENT__HAVE_INET_NTOP) && defined(INET6_ADDRSTRLEN)
+#if defined (HAVE_STRUCT_IN6_ADDR) && defined(HAVE_INET_NTOP) && defined(INET6_ADDRSTRLEN)
 		struct in6_addr *in6_addrs = addresses;
 		char buf[INET6_ADDRSTRLEN+1];
 		if (memcmp(&in6_addrs[0].s6_addr, "abcdefghijklmnop", 16)
@@ -1711,7 +1712,7 @@ testleak_cleanup(const struct testcase_t *testcase, void *env_)
 	int ok = 0;
 	struct testleak_env_t *env = env_;
 	tt_assert(env);
-#ifdef EVENT__DISABLE_DEBUG_MODE
+#ifdef DISABLE_DEBUG_MODE
 	tt_int_op(allocated_chunks, ==, 0);
 #else
 	/* FIXME: that's `1' because of event_debug_map_HT_GROW */

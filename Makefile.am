@@ -109,7 +109,7 @@ EXTRA_DIST = \
 	autogen.sh \
 	event_rpcgen.py \
 	libevent.pc.in \
-	make-event-config.sed \
+	make-event-config.sh \
 	whatsnew-2.0.txt \
 	whatsnew-2.1.txt \
 	$(PLATFORM_DEPENDENT_SRC)
@@ -146,13 +146,11 @@ if BUILD_WIN32
 SYS_LIBS = -lws2_32 -lshell32 -ladvapi32
 SYS_SRC = win32select.c evthread_win32.c buffer_iocp.c event_iocp.c \
 	bufferevent_async.c
-SYS_INCLUDES = -IWIN32-Code
 
 else
 
 SYS_LIBS =
 SYS_SRC =
-SYS_INCLUDES =
 
 endif
 
@@ -179,12 +177,16 @@ SYS_SRC += signal.c
 endif
 # BACKEND_WIN32 is covered by BUILD_WIN32
 
+if THREAD_SUPPORT
+SYS_SRC += evthread.c
+endif
+
 BUILT_SOURCES += include/event2/event-config.h
 
-include/event2/event-config.h: config.h make-event-config.sed
+include/event2/event-config.h: config.h make-event-config.sh
 	$(AM_V_GEN)test -d include/event2 || $(MKDIR_P) include/event2
-	$(AM_V_at)$(SED) -f $(srcdir)/make-event-config.sed < config.h > $@T
-	$(AM_V_at)mv -f $@T $@
+	$(AM_V_at)$(SHELL) $(srcdir)/make-event-config.sh \
+	  $(SED) $(srcdir)/include config.h include/event2/event-config.h
 
 CORE_SRC =					\
 	buffer.c				\
@@ -195,7 +197,6 @@ CORE_SRC =					\
 	bufferevent_sock.c			\
 	event.c					\
 	evmap.c					\
-	evthread.c				\
 	evutil.c				\
 	evutil_rand.c				\
 	evutil_time.c				\
@@ -245,13 +246,10 @@ libevent_openssl_la_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCS)
 endif
 
 noinst_HEADERS +=				\
-	WIN32-Code/evconfig-private.h		\
-	WIN32-Code/event2/event-config.h	\
 	bufferevent-internal.h			\
 	changelist-internal.h			\
 	defer-internal.h			\
 	evbuffer-internal.h			\
-	evconfig-private.h			\
 	event-internal.h			\
 	evmap-internal.h			\
 	evrpc-internal.h			\
@@ -284,7 +282,7 @@ else
 noinst_HEADERS += $(EVENT1_HDRS)
 endif
 
-AM_CPPFLAGS = -I$(srcdir)/include -I./include $(SYS_INCLUDES)
+AM_CPPFLAGS = -I$(srcdir)/include -I./include
 
 verify: check
 

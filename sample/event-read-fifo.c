@@ -9,7 +9,7 @@
  *     -L/usr/local/lib -levent
  */
 
-#include <event2/event-config.h>
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

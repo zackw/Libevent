@@ -31,9 +31,6 @@
 extern "C" {
 #endif
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
-
 #include <time.h>
 #include "event2/event_struct.h"
 #include "minheap-internal.h"
@@ -168,7 +165,7 @@ struct event_changelist {
 	int changes_size;
 };
 
-#ifndef EVENT__DISABLE_DEBUG_MODE
+#ifndef DISABLE_DEBUG_MODE
 /* Global internal flag: set to one if debug mode is on. */
 extern int event_debug_mode_on_;
 #define EVENT_DEBUG_MODE_IS_ON() (event_debug_mode_on_)
@@ -275,7 +272,7 @@ struct event_base {
 	/** Second in which we last updated tv_clock_diff, in monotonic time. */
 	time_t last_updated_clock_diff;
 
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	/* threading support */
 	/** The thread currently running the event_loop for this base */
 	unsigned long th_owner_id;

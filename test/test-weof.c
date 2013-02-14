@@ -24,7 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "event2/event-config.h"
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -33,10 +33,10 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#ifdef EVENT__HAVE_SYS_SOCKET_H
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 #include <fcntl.h>
@@ -50,10 +50,6 @@
 #include "event2/event_struct.h"
 #include "event2/event_compat.h"
 #include "event2/util.h"
-
-#ifdef EVENT____func__
-#define __func__ EVENT____func__
-#endif
 
 evutil_socket_t pair[2];
 int test_okay = 1;

@@ -23,31 +23,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "util-internal.h"
+
+#include "config.h"
 
 /* The old tests here need assertions to work. */
 #undef NDEBUG
-
-#include "event2/event-config.h"
 
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef EVENT__HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef EVENT__HAVE_SYS_WAIT_H
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
 
-#ifdef EVENT__HAVE_PTHREAD
+#ifdef HAVE_PTHREAD
 #include <pthread.h>
 #elif defined(_WIN32)
 #include <process.h>
 #endif
 #include <assert.h>
-#ifdef EVENT__HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <time.h>
@@ -64,8 +63,9 @@
 #include "regress.h"
 #include "tinytest_macros.h"
 #include "time-internal.h"
+#include "util-internal.h"
 
-#ifdef EVENT__HAVE_PTHREAD
+#ifdef HAVE_PTHREAD
 #define THREAD_T pthread_t
 #define THREAD_FN void *
 #define THREAD_RETURN() return (NULL)

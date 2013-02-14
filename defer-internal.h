@@ -30,9 +30,6 @@
 extern "C" {
 #endif
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
-
 struct event_callback;
 typedef void (*deferred_cb_fn)(struct event_callback *, void *);
 

@@ -30,9 +30,7 @@
 extern "C" {
 #endif
 
-#include "event2/event-config.h"
 #include "event2/event_struct.h"
-#include "evconfig-private.h"
 #include "event2/util.h"
 #include "defer-internal.h"
 #include "evthread-internal.h"
@@ -389,7 +387,7 @@ int bufferevent_generic_adj_timeouts_(struct bufferevent *bev);
  * bufferevent_private. */
 #define BEV_UPCAST(b) EVUTIL_UPCAST((b), struct bufferevent_private, bev)
 
-#ifdef EVENT__DISABLE_THREAD_SUPPORT
+#ifdef DISABLE_THREAD_SUPPORT
 #define BEV_LOCK(b) EVUTIL_NIL_STMT_
 #define BEV_UNLOCK(b) EVUTIL_NIL_STMT_
 #else

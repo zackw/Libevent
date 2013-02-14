@@ -4,6 +4,8 @@
  *   signal-test.c -L/usr/local/lib -levent
  */
 
+#include "config.h"
+
 #include <event2/event.h>
 #include <stdio.h>
 #include <signal.h>
@@ -11,10 +13,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
-#endif
-
-#ifdef EVENT____func__
-#define __func__ EVENT____func__
 #endif
 
 int called = 0;

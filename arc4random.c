@@ -50,7 +50,7 @@
 #endif
 
 #ifndef ARC4RANDOM_NO_INCLUDES
-#include "evconfig-private.h"
+#include "config.h"
 #ifdef _WIN32
 #include <wincrypt.h>
 #include <process.h>
@@ -59,7 +59,7 @@
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/time.h>
-#ifdef EVENT__HAVE_SYS_SYSCTL_H
+#ifdef HAVE_SYS_SYSCTL_H
 #include <sys/sysctl.h>
 #endif
 #endif
@@ -168,8 +168,8 @@ arc4_seed_win32(void)
 }
 #endif
 
-#if defined(EVENT__HAVE_SYS_SYSCTL_H) && defined(EVENT__HAVE_SYSCTL)
-#if EVENT__HAVE_DECL_CTL_KERN && EVENT__HAVE_DECL_KERN_RANDOM && EVENT__HAVE_DECL_RANDOM_UUID
+#if defined(HAVE_SYS_SYSCTL_H) && defined(HAVE_SYSCTL)
+#if HAVE_DECL_CTL_KERN && HAVE_DECL_KERN_RANDOM && HAVE_DECL_RANDOM_UUID
 #define TRY_SEED_SYSCTL_LINUX
 static int
 arc4_seed_sysctl_linux(void)
@@ -206,7 +206,7 @@ arc4_seed_sysctl_linux(void)
 }
 #endif
 
-#if EVENT__HAVE_DECL_CTL_KERN && EVENT__HAVE_DECL_KERN_ARND
+#if HAVE_DECL_CTL_KERN && HAVE_DECL_KERN_ARND
 #define TRY_SEED_SYSCTL_BSD
 static int
 arc4_seed_sysctl_bsd(void)
@@ -245,7 +245,7 @@ arc4_seed_sysctl_bsd(void)
 	return 0;
 }
 #endif
-#endif /* defined(EVENT__HAVE_SYS_SYSCTL_H) */
+#endif /* defined(HAVE_SYS_SYSCTL_H) */
 
 #ifdef __linux__
 #define TRY_SEED_PROC_SYS_KERNEL_RANDOM_UUID

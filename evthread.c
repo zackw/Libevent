@@ -24,10 +24,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
-
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#include "config.h"
 
 #include "event2/thread.h"
 
@@ -459,6 +456,4 @@ evthreadimpl_locking_enabled_(void)
 {
 	return evthread_lock_fns_.lock != NULL;
 }
-#endif
-
 #endif

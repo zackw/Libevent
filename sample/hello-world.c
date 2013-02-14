@@ -6,6 +6,7 @@
   Where possible, it exits cleanly in response to a SIGINT (ctrl-c).
 */
 
+#include "config.h"
 
 #include <string.h>
 #include <errno.h>

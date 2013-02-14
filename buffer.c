@@ -25,8 +25,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -34,36 +33,30 @@
 #include <io.h>
 #endif
 
-#ifdef EVENT__HAVE_VASPRINTF
-/* If we have vasprintf, we need to define _GNU_SOURCE before we include
- * stdio.h.  This comes from evconfig-private.h.
- */
-#endif
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 
-#ifdef EVENT__HAVE_SYS_SOCKET_H
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 
-#ifdef EVENT__HAVE_SYS_UIO_H
+#ifdef HAVE_SYS_UIO_H
 #include <sys/uio.h>
 #endif
 
-#ifdef EVENT__HAVE_SYS_IOCTL_H
+#ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
 
-#ifdef EVENT__HAVE_SYS_MMAN_H
+#ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
 
-#ifdef EVENT__HAVE_SYS_SENDFILE_H
+#ifdef HAVE_SYS_SENDFILE_H
 #include <sys/sendfile.h>
 #endif
 
@@ -72,7 +65,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#ifdef EVENT__HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <limits.h>
@@ -97,16 +90,16 @@
 #endif
 
 /* send file support */
-#if defined(EVENT__HAVE_SYS_SENDFILE_H) && defined(EVENT__HAVE_SENDFILE) && defined(__linux__)
+#if defined(HAVE_SYS_SENDFILE_H) && defined(HAVE_SENDFILE) && defined(__linux__)
 #define USE_SENDFILE		1
 #define SENDFILE_IS_LINUX	1
-#elif defined(EVENT__HAVE_SENDFILE) && defined(__FreeBSD__)
+#elif defined(HAVE_SENDFILE) && defined(__FreeBSD__)
 #define USE_SENDFILE		1
 #define SENDFILE_IS_FREEBSD	1
-#elif defined(EVENT__HAVE_SENDFILE) && defined(__APPLE__)
+#elif defined(HAVE_SENDFILE) && defined(__APPLE__)
 #define USE_SENDFILE		1
 #define SENDFILE_IS_MACOSX	1
-#elif defined(EVENT__HAVE_SENDFILE) && defined(__sun__) && defined(__svr4__)
+#elif defined(HAVE_SENDFILE) && defined(__sun__) && defined(__svr4__)
 #define USE_SENDFILE		1
 #define SENDFILE_IS_SOLARIS	1
 #endif
@@ -409,7 +402,7 @@ evbuffer_defer_callbacks(struct evbuffer *buffer, struct event_base *base)
 int
 evbuffer_enable_locking(struct evbuffer *buf, void *lock)
 {
-#ifdef EVENT__DISABLE_THREAD_SUPPORT
+#ifdef DISABLE_THREAD_SUPPORT
 	return -1;
 #else
 	if (buf->lock)
@@ -2113,13 +2106,13 @@ evbuffer_expand(struct evbuffer *buf, size_t datlen)
  * Reads data from a file descriptor into a buffer.
  */
 
-#if defined(EVENT__HAVE_SYS_UIO_H) || defined(_WIN32)
+#if defined(HAVE_SYS_UIO_H) || defined(_WIN32)
 #define USE_IOVEC_IMPL
 #endif
 
 #ifdef USE_IOVEC_IMPL
 
-#ifdef EVENT__HAVE_SYS_UIO_H
+#ifdef HAVE_SYS_UIO_H
 /* number of iovec we use for writev, fragmentation is going to determine
  * how much we end up writing */
 
@@ -2943,7 +2936,7 @@ evbuffer_file_segment_materialize(struct evbuffer_file_segment *seg)
 	if (seg->contents)
 		return 0; /* already materialized */
 
-#if defined(EVENT__HAVE_MMAP)
+#if defined(HAVE_MMAP)
 	if (!(flags & EVBUF_FS_DISABLE_MMAP)) {
 		off_t offset_rounded = 0, offset_leftover = 0;
 		void *mapped;
@@ -3067,7 +3060,7 @@ evbuffer_file_segment_free(struct evbuffer_file_segment *seg)
 	if (seg->is_mapping) {
 #ifdef _WIN32
 		CloseHandle(seg->mapping_handle);
-#elif defined (EVENT__HAVE_MMAP)
+#elif defined (HAVE_MMAP)
 		if (munmap(seg->mapping, seg->length) == -1)
 			event_warn("%s: munmap failed", __func__);
 #endif

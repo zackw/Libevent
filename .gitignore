@@ -43,7 +43,6 @@ TAGS
 /libevent.pc
 /libevent_pthreads.pc
 /libevent_openssl.pc
-/evconfig-private.h
 /include/event2/event-config.h
 
 # Autotools clutter in the top level

@@ -26,13 +26,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "event2/event-config.h"
-#include "evconfig-private.h"
 
-#ifdef EVENT__HAVE_POLL
+#include "config.h"
 
 #include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #include <poll.h>
@@ -132,7 +130,7 @@ poll_dispatch(struct event_base *base, struct timeval *tv)
 
 	nfds = pop->nfds;
 
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	if (base->th_base_lock) {
 		/* If we're using this backend in a multithreaded setting,
 		 * then we need to work on a copy of event_set, so that we can
@@ -336,5 +334,3 @@ poll_dealloc(struct event_base *base)
 	memset(pop, 0, sizeof(struct pollop));
 	mm_free(pop);
 }
-
-#endif /* EVENT__HAVE_POLL */

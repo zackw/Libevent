@@ -25,15 +25,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+#include "config.h"
 
 #include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_PARAM_H
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #ifdef HAVE_SYS_IOCCOM_H
@@ -50,13 +49,13 @@
 #include <ws2tcpip.h>
 #endif
 
-#ifdef EVENT__HAVE_NETINET_IN_H
+#ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-#ifdef EVENT__HAVE_ARPA_INET_H
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
-#ifdef EVENT__HAVE_NETDB_H
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
 #endif
 
@@ -73,7 +72,7 @@
 #endif
 #include <signal.h>
 #include <time.h>
-#ifdef EVENT__HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <fcntl.h>
@@ -96,7 +95,7 @@
 #include "mm-internal.h"
 #include "bufferevent-internal.h"
 
-#ifndef EVENT__HAVE_GETNAMEINFO
+#ifndef HAVE_GETNAMEINFO
 #define NI_MAXSERV 32
 #define NI_MAXHOST 1025
 
@@ -192,7 +191,7 @@ static int evhttp_decode_uri_internal(const char *uri, size_t length,
 static int evhttp_find_vhost(struct evhttp *http, struct evhttp **outhttp,
 		  const char *hostname);
 
-#ifndef EVENT__HAVE_STRSEP
+#ifndef HAVE_STRSEP
 /* strsep replacement for platforms that lack it.  Only works if
  * del is one character long. */
 static char *
@@ -3982,7 +3981,7 @@ name_from_addr(struct sockaddr *sa, ev_socklen_t salen,
 	char strport[NI_MAXSERV];
 	int ni_result;
 
-#ifdef EVENT__HAVE_GETNAMEINFO
+#ifdef HAVE_GETNAMEINFO
 	ni_result = getnameinfo(sa, salen,
 		ntop, sizeof(ntop), strport, sizeof(strport),
 		NI_NUMERICHOST|NI_NUMERICSERV);

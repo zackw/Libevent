@@ -24,8 +24,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -38,10 +37,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
-#ifndef EVENT__HAVE_GETTIMEOFDAY
+#ifndef HAVE_GETTIMEOFDAY
 #include <sys/timeb.h>
 #endif
-#if !defined(EVENT__HAVE_NANOSLEEP) && !defined(EVENT_HAVE_USLEEP) && \
+#if !defined(HAVE_NANOSLEEP) && !defined(EVENT_HAVE_USLEEP) && \
 	!defined(_WIN32)
 #include <sys/select.h>
 #endif
@@ -53,7 +52,7 @@
 #include "util-internal.h"
 #include "log-internal.h"
 
-#ifndef EVENT__HAVE_GETTIMEOFDAY
+#ifndef HAVE_GETTIMEOFDAY
 /* No gettimeofday; this must be windows. */
 int
 evutil_gettimeofday(struct timeval *tv, struct timezone *tz)
@@ -119,14 +118,14 @@ evutil_usleep_(const struct timeval *tv)
 		long msec = evutil_tv_to_msec_(tv);
 		Sleep((DWORD)msec);
 	}
-#elif defined(EVENT__HAVE_NANOSLEEP)
+#elif defined(HAVE_NANOSLEEP)
 	{
 		struct timespec ts;
 		ts.tv_sec = tv->tv_sec;
 		ts.tv_nsec = tv->tv_usec*1000;
 		nanosleep(&ts, NULL);
 	}
-#elif defined(EVENT__HAVE_USLEEP)
+#elif defined(HAVE_USLEEP)
 	/* Some systems don't like to usleep more than 999999 usec */
 	sleep(tv->tv_sec);
 	usleep(tv->tv_usec);

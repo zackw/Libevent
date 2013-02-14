@@ -27,10 +27,7 @@
 #ifndef TIME_INTERNAL_H_INCLUDED_
 #define TIME_INTERNAL_H_INCLUDED_
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
-
-#ifdef EVENT__HAVE_MACH_MACH_TIME_H
+#ifdef HAVE_MACH_MACH_TIME_H
 /* For mach_timebase_info */
 #include <mach/mach_time.h>
 #endif
@@ -43,9 +40,9 @@
 extern "C" {
 #endif
 
-#if defined(EVENT__HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
 #define HAVE_POSIX_MONOTONIC
-#elif defined(EVENT__HAVE_MACH_ABSOLUTE_TIME)
+#elif defined(HAVE_MACH_ABSOLUTE_TIME)
 #define HAVE_MACH_MONOTONIC
 #elif defined(_WIN32)
 #define HAVE_WIN32_MONOTONIC

@@ -5,10 +5,7 @@
 extern "C" {
 #endif
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
-
-#ifndef EVENT__HAVE_STRLCPY
+#ifndef HAVE_STRLCPY
 #include <string.h>
 size_t event_strlcpy_(char *dst, const char *src, size_t siz);
 #define strlcpy event_strlcpy_

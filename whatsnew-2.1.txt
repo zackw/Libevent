@@ -467,12 +467,14 @@
   on current macro definitions when your program is building.
 
   We now also use the Autoconf AC_USE_SYSTEM_EXTENSIONS mechanism to
-  enable per-system macros needed to enable not-on-by-default features.
-  Unlike the rest of the autoconf macros, we output these to an
-  internal-use-only evconfig-private.h header, since their names need to
-  survive unmangled.  This lets us build correctly on more platforms,
-  and avoid inconsistencies when some files define _GNU_SOURCE and
-  others don't.
+  enable per-system macros needed to enable not-on-by-default
+  features.  This lets us build correctly on more platforms, and avoid
+  inconsistencies when some files define _GNU_SOURCE and others don't.
+  We can't apply this to code that uses the public libevent headers,
+  though; if you run into problems with our headers assuming things
+  about the system headers that don't appear to be true, you may want
+  to consider applying AC_USE_SYSTEM_EXTENSIONS, or equivalent, to
+  your own code.
 
   Libevent now tries to detect OpenSSL via pkg-config.
 

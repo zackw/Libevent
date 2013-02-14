@@ -24,18 +24,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "util-internal.h"
+
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
 #endif
 
-#include "event2/event-config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #ifndef _WIN32
@@ -59,6 +58,8 @@
 #include "defer-internal.h"
 #include "evbuffer-internal.h"
 #include "log-internal.h"
+#include "util-internal.h"
+
 
 #include "regress.h"
 
@@ -801,7 +802,7 @@ test_evbuffer_add_file(void *ptr)
 	/* Say that it drains to a fd so that we can use sendfile. */
 	evbuffer_set_flags(src, EVBUFFER_FLAG_DRAINS_TO_FD);
 
-#if defined(EVENT__HAVE_SENDFILE) && defined(__sun__) && defined(__svr4__)
+#if defined(HAVE_SENDFILE) && defined(__sun__) && defined(__svr4__)
 	/* We need to use a pair of AF_INET sockets, since Solaris
 	   doesn't support sendfile() over AF_UNIX. */
 	if (evutil_ersatz_socketpair_(AF_INET, SOCK_STREAM, 0, pair) == -1)
@@ -933,7 +934,7 @@ end:
 	}
 }
 
-#ifndef EVENT__DISABLE_MM_REPLACEMENT
+#ifndef DISABLE_MM_REPLACEMENT
 static void *
 failing_malloc(size_t how_much)
 {
@@ -1164,7 +1165,7 @@ test_evbuffer_readln(void *ptr)
 	evbuffer_validate(evb);
 
 	/* the next call to readline should fail */
-#ifndef EVENT__DISABLE_MM_REPLACEMENT
+#ifndef DISABLE_MM_REPLACEMENT
 	event_set_mem_functions(failing_malloc, realloc, free);
 	cp = evbuffer_readln(evb, &sz, EVBUFFER_EOL_LF);
 	tt_assert(cp == NULL);

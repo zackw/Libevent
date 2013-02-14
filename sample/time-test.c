@@ -8,16 +8,15 @@
  * cc -I/usr/local/include -o time-test time-test.c -L/usr/local/lib -levent
  */
 
+#include "config.h"
+
 #include <sys/types.h>
-
-#include <event2/event-config.h>
-
 #include <sys/stat.h>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 #include <time.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #include <fcntl.h>

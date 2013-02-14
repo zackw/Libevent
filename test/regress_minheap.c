@@ -23,10 +23,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "../minheap-internal.h"
+
+#include "config.h"
+
 
 #include <stdlib.h>
 #include "event2/event_struct.h"
+#include "minheap-internal.h"
 
 #include "tinytest.h"
 #include "tinytest_macros.h"

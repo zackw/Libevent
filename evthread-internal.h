@@ -30,9 +30,6 @@
 extern "C" {
 #endif
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
-
 #include "event2/thread.h"
 #include "util-internal.h"
 
@@ -46,7 +43,7 @@ struct event_base;
 #define EVTHREAD_EXPOSE_STRUCTS
 #endif
 
-#if ! defined(EVENT__DISABLE_THREAD_SUPPORT) && defined(EVTHREAD_EXPOSE_STRUCTS)
+#if ! defined(DISABLE_THREAD_SUPPORT) && defined(EVTHREAD_EXPOSE_STRUCTS)
 /* Global function pointers to lock-related functions. NULL if locking isn't
    enabled. */
 extern struct evthread_lock_callbacks evthread_lock_fns_;
@@ -179,7 +176,7 @@ EVLOCK_TRY_LOCK_(void *lock)
 #define EVTHREAD_LOCKING_ENABLED()		\
 	(evthread_lock_fns_.lock != NULL)
 
-#elif ! defined(EVENT__DISABLE_THREAD_SUPPORT)
+#elif ! defined(DISABLE_THREAD_SUPPORT)
 
 unsigned long evthreadimpl_get_id_(void);
 int evthreadimpl_is_lock_debugging_enabled_(void);
@@ -291,7 +288,7 @@ EVLOCK_TRY_LOCK_(void *lock)
 #define EVTHREAD_LOCKING_ENABLED()		\
 	(evthreadimpl_locking_enabled_())
 
-#else /* EVENT__DISABLE_THREAD_SUPPORT */
+#else /* DISABLE_THREAD_SUPPORT */
 
 #define EVTHREAD_GET_ID()	1
 #define EVTHREAD_ALLOC_LOCK(lockvar, locktype) EVUTIL_NIL_STMT_
@@ -322,7 +319,7 @@ EVLOCK_TRY_LOCK_(void *lock)
 #endif
 
 /* This code is shared between both lock impls */
-#if ! defined(EVENT__DISABLE_THREAD_SUPPORT)
+#if ! defined(DISABLE_THREAD_SUPPORT)
 /** Helper: put lockvar1 and lockvar2 into pointerwise ascending order. */
 #define EVLOCK_SORTLOCKS_(lockvar1, lockvar2)				\
 	do {								\

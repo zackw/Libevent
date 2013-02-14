@@ -24,8 +24,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -43,10 +42,10 @@
 #endif
 
 #include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_SOCKET_H
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
-#ifdef EVENT__HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <fcntl.h>
@@ -55,21 +54,21 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef EVENT__HAVE_NETINET_IN_H
+#ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-#ifdef EVENT__HAVE_NETINET_IN6_H
+#ifdef HAVE_NETINET_IN6_H
 #include <netinet/in6.h>
 #endif
-#ifdef EVENT__HAVE_NETINET_TCP_H
+#ifdef HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
 #endif
-#ifdef EVENT__HAVE_ARPA_INET_H
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
 #include <time.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_IFADDRS_H
+#ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
 #endif
 
@@ -361,7 +360,7 @@ evutil_make_listen_socket_reuseable(evutil_socket_t sock)
 int
 evutil_make_tcp_listen_socket_deferred(evutil_socket_t sock)
 {
-#if defined(EVENT__HAVE_NETINET_TCP_H) && defined(TCP_DEFER_ACCEPT)
+#if defined(HAVE_NETINET_TCP_H) && defined(TCP_DEFER_ACCEPT)
 	int one = 1;
 
 	/* TCP_DEFER_ACCEPT tells the kernel to call defer accept() only after data
@@ -418,9 +417,9 @@ evutil_closesocket(evutil_socket_t sock)
 ev_int64_t
 evutil_strtoll(const char *s, char **endptr, int base)
 {
-#ifdef EVENT__HAVE_STRTOLL
+#ifdef HAVE_STRTOLL
 	return (ev_int64_t)strtoll(s, endptr, base);
-#elif EVENT__SIZEOF_LONG == 8
+#elif SIZEOF_LONG == 8
 	return (ev_int64_t)strtol(s, endptr, base);
 #elif defined(_WIN32) && defined(_MSC_VER) && _MSC_VER < 1300
 	/* XXXX on old versions of MS APIs, we only support base
@@ -440,7 +439,7 @@ evutil_strtoll(const char *s, char **endptr, int base)
 	return r;
 #elif defined(_WIN32)
 	return (ev_int64_t) _strtoi64(s, endptr, base);
-#elif defined(EVENT__SIZEOF_LONG_LONG) && EVENT__SIZEOF_LONG_LONG == 8
+#elif defined(SIZEOF_LONG_LONG) && SIZEOF_LONG_LONG == 8
 	long long r;
 	int n;
 	if (base != 10 && base != 16)
@@ -618,7 +617,7 @@ typedef ULONG (WINAPI *GetAdaptersAddresses_fn_t)(
 static int
 evutil_check_ifaddrs(void)
 {
-#if defined(EVENT__HAVE_GETIFADDRS)
+#if defined(HAVE_GETIFADDRS)
 	/* Most free Unixy systems provide getifaddrs, which gives us a linked list
 	 * of struct ifaddrs. */
 	struct ifaddrs *ifa = NULL;
@@ -849,7 +848,7 @@ evutil_parse_servname(const char *servname, const char *protocol,
 	int n = parse_numeric_servname(servname);
 	if (n>=0)
 		return n;
-#if defined(EVENT__HAVE_GETSERVBYNAME) || defined(_WIN32)
+#if defined(HAVE_GETSERVBYNAME) || defined(_WIN32)
 	if (!(hints->ai_flags & EVUTIL_AI_NUMERICSERV)) {
 		struct servent *ent = getservbyname(servname, protocol);
 		if (ent) {
@@ -877,7 +876,7 @@ evutil_unparse_protoname(int proto)
 		return "sctp";
 #endif
 	default:
-#ifdef EVENT__HAVE_GETPROTOBYNUMBER
+#ifdef HAVE_GETPROTOBYNUMBER
 		{
 			struct protoent *ent = getprotobynumber(proto);
 			if (ent)
@@ -1046,7 +1045,7 @@ evutil_getaddrinfo_common_(const char *nodename, const char *servname,
 	return EVUTIL_EAI_NEED_RESOLVE;
 }
 
-#ifdef EVENT__HAVE_GETADDRINFO
+#ifdef HAVE_GETADDRINFO
 #define USE_NATIVE_GETADDRINFO
 #endif
 
@@ -1424,19 +1423,19 @@ evutil_getaddrinfo(const char *nodename, const char *servname,
 	err = 0;
 	/* Use any of the various gethostbyname_r variants as available. */
 	{
-#ifdef EVENT__HAVE_GETHOSTBYNAME_R_6_ARG
+#ifdef HAVE_GETHOSTBYNAME_R_6_ARG
 		/* This one is what glibc provides. */
 		char buf[2048];
 		struct hostent hostent;
 		int r;
 		r = gethostbyname_r(nodename, &hostent, buf, sizeof(buf), &ent,
 		    &err);
-#elif defined(EVENT__HAVE_GETHOSTBYNAME_R_5_ARG)
+#elif defined(HAVE_GETHOSTBYNAME_R_5_ARG)
 		char buf[2048];
 		struct hostent hostent;
 		ent = gethostbyname_r(nodename, &hostent, buf, sizeof(buf),
 		    &err);
-#elif defined(EVENT__HAVE_GETHOSTBYNAME_R_3_ARG)
+#elif defined(HAVE_GETHOSTBYNAME_R_3_ARG)
 		struct hostent_data data;
 		struct hostent hostent;
 		memset(&data, 0, sizeof(data));
@@ -1501,7 +1500,7 @@ evutil_getaddrinfo(const char *nodename, const char *servname,
 void
 evutil_freeaddrinfo(struct evutil_addrinfo *ai)
 {
-#ifdef EVENT__HAVE_GETADDRINFO
+#ifdef HAVE_GETADDRINFO
 	if (!(ai->ai_flags & EVUTIL_AI_LIBEVENT_ALLOCATED)) {
 		freeaddrinfo(ai);
 		return;
@@ -1710,7 +1709,7 @@ evutil_vsnprintf(char *buf, size_t buflen, const char *format, va_list ap)
 const char *
 evutil_inet_ntop(int af, const void *src, char *dst, size_t len)
 {
-#if defined(EVENT__HAVE_INET_NTOP) && !defined(USE_INTERNAL_NTOP)
+#if defined(HAVE_INET_NTOP) && !defined(USE_INTERNAL_NTOP)
 	return inet_ntop(af, src, dst, len);
 #else
 	if (af == AF_INET) {
@@ -1806,7 +1805,7 @@ evutil_inet_ntop(int af, const void *src, char *dst, size_t len)
 int
 evutil_inet_pton(int af, const char *src, void *dst)
 {
-#if defined(EVENT__HAVE_INET_PTON) && !defined(USE_INTERNAL_PTON)
+#if defined(HAVE_INET_PTON) && !defined(USE_INTERNAL_PTON)
 	return inet_pton(af, src, dst);
 #else
 	if (af == AF_INET) {
@@ -1983,7 +1982,7 @@ evutil_parse_sockaddr_port(const char *ip_as_string, struct sockaddr *out, int *
 	{
 		struct sockaddr_in6 sin6;
 		memset(&sin6, 0, sizeof(sin6));
-#ifdef EVENT__HAVE_STRUCT_SOCKADDR_IN6_SIN6_LEN
+#ifdef HAVE_STRUCT_SOCKADDR_IN6_SIN6_LEN
 		sin6.sin6_len = sizeof(sin6);
 #endif
 		sin6.sin6_family = AF_INET6;
@@ -2002,7 +2001,7 @@ evutil_parse_sockaddr_port(const char *ip_as_string, struct sockaddr *out, int *
 	{
 		struct sockaddr_in sin;
 		memset(&sin, 0, sizeof(sin));
-#ifdef EVENT__HAVE_STRUCT_SOCKADDR_IN_SIN_LEN
+#ifdef HAVE_STRUCT_SOCKADDR_IN_SIN_LEN
 		sin.sin_len = sizeof(sin);
 #endif
 		sin.sin_family = AF_INET;
@@ -2219,15 +2218,15 @@ evutil_rtrim_lws_(char *str)
 static int
 evutil_issetugid(void)
 {
-#ifdef EVENT__HAVE_ISSETUGID
+#ifdef HAVE_ISSETUGID
 	return issetugid();
 #else
 
-#ifdef EVENT__HAVE_GETEUID
+#ifdef HAVE_GETEUID
 	if (getuid() != geteuid())
 		return 1;
 #endif
-#ifdef EVENT__HAVE_GETEGID
+#ifdef HAVE_GETEGID
 	if (getgid() != getegid())
 		return 1;
 #endif
@@ -2398,7 +2397,7 @@ evutil_accept4_(evutil_socket_t sockfd, struct sockaddr *addr,
     ev_socklen_t *addrlen, int flags)
 {
 	evutil_socket_t result;
-#if defined(EVENT__HAVE_ACCEPT4) && defined(SOCK_CLOEXEC) && defined(SOCK_NONBLOCK)
+#if defined(HAVE_ACCEPT4) && defined(SOCK_CLOEXEC) && defined(SOCK_NONBLOCK)
 	result = accept4(sockfd, addr, addrlen, flags);
 	if (result >= 0 || (errno != EINVAL && errno != ENOSYS)) {
 		/* A nonnegative result means that we succeeded, so return.
@@ -2444,11 +2443,11 @@ evutil_make_internal_pipe_(evutil_socket_t fd[2])
 	  or woken up and in the process of draining it.
 	*/
 
-#if defined(EVENT__HAVE_PIPE2)
+#if defined(HAVE_PIPE2)
 	if (pipe2(fd, O_NONBLOCK|O_CLOEXEC) == 0)
 		return 0;
 #endif
-#if defined(EVENT__HAVE_PIPE)
+#if defined(HAVE_PIPE)
 	if (pipe(fd) == 0) {
 		if (evutil_fast_socket_nonblocking(fd[0]) < 0 ||
 		    evutil_fast_socket_nonblocking(fd[1]) < 0 ||
@@ -2493,7 +2492,7 @@ evutil_make_internal_pipe_(evutil_socket_t fd[2])
 evutil_socket_t
 evutil_eventfd_(unsigned initval, int flags)
 {
-#if defined(EVENT__HAVE_EVENTFD) && defined(EVENT__HAVE_SYS_EVENTFD_H)
+#if defined(HAVE_EVENTFD) && defined(HAVE_SYS_EVENTFD_H)
 	int r;
 #if defined(EFD_CLOEXEC) && defined(EFD_NONBLOCK)
 	r = eventfd(initval, flags);

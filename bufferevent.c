@@ -25,12 +25,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+#include "config.h"
 
 #include <sys/types.h>
 
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 
@@ -302,7 +301,7 @@ bufferevent_init_common_(struct bufferevent_private *bufev_private,
 	 */
 	bufev->enabled = EV_WRITE;
 
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	if (options & BEV_OPT_THREADSAFE) {
 		if (bufferevent_enable_locking_(bufev, NULL) < 0) {
 			/* cleanup */
@@ -727,7 +726,7 @@ bufferevent_incref_(struct bufferevent *bufev)
 int
 bufferevent_enable_locking_(struct bufferevent *bufev, void *lock)
 {
-#ifdef EVENT__DISABLE_THREAD_SUPPORT
+#ifdef DISABLE_THREAD_SUPPORT
 	return -1;
 #else
 	struct bufferevent *underlying;

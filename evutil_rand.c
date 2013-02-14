@@ -32,15 +32,14 @@
  * so that other people can rip it out and use it for whatever.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+#include "config.h"
 
 #include <limits.h>
 
 #include "util-internal.h"
 #include "evthread-internal.h"
 
-#ifdef EVENT__HAVE_ARC4RANDOM
+#ifdef HAVE_ARC4RANDOM
 #include <stdlib.h>
 #include <string.h>
 int
@@ -50,7 +49,7 @@ evutil_secure_rng_init(void)
 	(void) arc4random();
 	return 0;
 }
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 int
 evutil_secure_rng_global_setup_locks_(const int enable_locks)
 {
@@ -65,12 +64,12 @@ evutil_free_secure_rng_globals_locks(void)
 static void
 ev_arc4random_buf(void *buf, size_t n)
 {
-#if defined(EVENT__HAVE_ARC4RANDOM_BUF) && !defined(__APPLE__)
+#if defined(HAVE_ARC4RANDOM_BUF) && !defined(__APPLE__)
 	return arc4random_buf(buf, n);
 #else
 	unsigned char *b = buf;
 
-#if defined(EVENT__HAVE_ARC4RANDOM_BUF)
+#if defined(HAVE_ARC4RANDOM_BUF)
 	/* OSX 10.7 introducd arc4random_buf, so if you build your program
 	 * there, you'll get surprised when older versions of OSX fail to run.
 	 * To solve this, we can check whether the function pointer is set,
@@ -102,15 +101,12 @@ ev_arc4random_buf(void *buf, size_t n)
 #endif
 }
 
-#else /* !EVENT__HAVE_ARC4RANDOM { */
+#else /* !HAVE_ARC4RANDOM { */
 
-#ifdef EVENT__ssize_t
-#define ssize_t EVENT__ssize_t
-#endif
 #define ARC4RANDOM_EXPORT static
 #define ARC4_LOCK_() EVLOCK_LOCK(arc4rand_lock, 0)
 #define ARC4_UNLOCK_() EVLOCK_UNLOCK(arc4rand_lock, 0)
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 static void *arc4rand_lock;
 #endif
 
@@ -121,7 +117,7 @@ static void *arc4rand_lock;
 
 #include "./arc4random.c"
 
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 int
 evutil_secure_rng_global_setup_locks_(const int enable_locks)
 {
@@ -133,7 +129,7 @@ evutil_secure_rng_global_setup_locks_(const int enable_locks)
 static void
 evutil_free_secure_rng_globals_locks(void)
 {
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	if (arc4rand_lock != NULL) {
 		EVTHREAD_FREE_LOCK(arc4rand_lock, 0);
 		arc4rand_lock = NULL;
@@ -161,7 +157,7 @@ ev_arc4random_buf(void *buf, size_t n)
 	arc4random_buf(buf, n);
 }
 
-#endif /* } !EVENT__HAVE_ARC4RANDOM */
+#endif /* } !HAVE_ARC4RANDOM */
 
 void
 evutil_secure_rng_get_bytes(void *buf, size_t n)

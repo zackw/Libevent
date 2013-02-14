@@ -25,10 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "event2/event-config.h"
-#include "evconfig-private.h"
 
-#ifdef _WIN32
+#include "config.h"
 
 #include <winsock2.h>
 #include <windows.h>
@@ -383,5 +381,3 @@ win32_dealloc(struct event_base *base)
 	memset(win32op, 0, sizeof(win32op));
 	mm_free(win32op);
 }
-
-#endif

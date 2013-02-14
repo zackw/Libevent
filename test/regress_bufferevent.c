@@ -24,7 +24,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "util-internal.h"
+
+#include "config.h"
 
 /* The old tests here need assertions to work. */
 #undef NDEBUG
@@ -34,11 +35,9 @@
 #include <windows.h>
 #endif
 
-#include "event2/event-config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #ifndef _WIN32
@@ -57,7 +56,7 @@
 #include <errno.h>
 #include <assert.h>
 
-#ifdef EVENT__HAVE_ARPA_INET_H
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
 
@@ -77,6 +76,7 @@
 #ifdef _WIN32
 #include "iocp-internal.h"
 #endif
+#include "util-internal.h"
 
 #include "regress.h"
 #include "regress_testutils.h"
@@ -820,7 +820,7 @@ struct testcase_t bufferevent_testcases[] = {
 	  TT_FORK|TT_NEED_BASE, &basic_setup, (void*)"filter" },
 	{ "bufferevent_timeout_filter_pair", test_bufferevent_timeouts,
 	  TT_FORK|TT_NEED_BASE, &basic_setup, (void*)"filter pair" },
-#ifdef EVENT__HAVE_LIBZ
+#ifdef HAVE_LIBZ
 	LEGACY(bufferevent_zlib, TT_ISOLATED),
 #else
 	{ "bufferevent_zlib", NULL, TT_SKIP, NULL, NULL },

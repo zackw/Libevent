@@ -23,7 +23,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "../util-internal.h"
+
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -31,11 +32,9 @@
 #include <ws2tcpip.h>
 #endif
 
-#include "event2/event-config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #ifndef _WIN32
@@ -45,7 +44,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif
-#ifdef EVENT__HAVE_NETINET_IN6_H
+#ifdef HAVE_NETINET_IN6_H
 #include <netinet/in6.h>
 #endif
 #ifdef HAVE_NETDB_H
@@ -65,6 +64,7 @@
 #include "event2/listener.h"
 #include "event2/bufferevent.h"
 #include "log-internal.h"
+#include "util-internal.h"
 #include "regress.h"
 #include "regress_testutils.h"
 

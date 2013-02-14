@@ -24,8 +24,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -34,15 +34,15 @@
 #undef WIN32_LEAN_AND_MEAN
 #endif
 #include <sys/types.h>
-#if !defined(_WIN32) && defined(EVENT__HAVE_SYS_TIME_H)
+#if !defined(_WIN32) && defined(HAVE_SYS_TIME_H)
 #include <sys/time.h>
 #endif
-#ifdef EVENT__HAVE_SYS_SOCKET_H
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef EVENT__HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <ctype.h>
@@ -69,7 +69,7 @@
 #include "util-internal.h"
 #include "event2/qutil.h"
 
-#ifdef EVENT__BACKEND_KQUEUE
+#ifdef BACKEND_KQUEUE
 #include "kqueue-internal.h"
 #endif
 
@@ -83,25 +83,25 @@ extern const struct eventop win32ops;
 
 /* Array of backends in order of preference. */
 static const struct eventop *eventops[] = {
-#ifdef EVENT__BACKEND_EVPORT
+#ifdef BACKEND_EVPORT
 	&evportops,
 #endif
-#ifdef EVENT__BACKEND_KQUEUE
+#ifdef BACKEND_KQUEUE
 	&kqops,
 #endif
-#ifdef EVENT__BACKEND_EPOLL
+#ifdef BACKEND_EPOLL
 	&epollops,
 #endif
-#ifdef EVENT__BACKEND_DEVPOLL
+#ifdef BACKEND_DEVPOLL
 	&devpollops,
 #endif
-#ifdef EVENT__BACKEND_POLL
+#ifdef BACKEND_POLL
 	&pollops,
 #endif
-#ifdef EVENT__BACKEND_SELECT
+#ifdef BACKEND_SELECT
 	&selectops,
 #endif
-#ifdef EVENT__BACKEND_WIN32
+#ifdef BACKEND_WIN32
 	&win32ops,
 #endif
 	NULL
@@ -149,7 +149,7 @@ static int	evthread_notify_base(struct event_base *base);
 static void insert_common_timeout_inorder(struct common_timeout_list *ctl,
     struct event *ev);
 
-#ifndef EVENT__DISABLE_DEBUG_MODE
+#ifndef DISABLE_DEBUG_MODE
 /* These functions implement a hashtable of which 'struct event *' structures
  * have been setup or added.  We don't want to trust the content of the struct
  * event itself, since we're trying to work through cases where an event gets
@@ -186,7 +186,7 @@ eq_debug_entry(const struct event_debug_entry *a,
 int event_debug_mode_on_ = 0;
 /* Set if it's too late to enable event_debug_mode. */
 static int event_debug_mode_too_late = 0;
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 static void *event_debug_map_lock_ = NULL;
 #endif
 static HT_HEAD(event_debug_map, event_debug_entry) global_debug_map =
@@ -497,7 +497,7 @@ event_base_get_features(const struct event_base *base)
 void
 event_enable_debug_mode(void)
 {
-#ifndef EVENT__DISABLE_DEBUG_MODE
+#ifndef DISABLE_DEBUG_MODE
 	if (event_debug_mode_on_)
 		event_errx(1, "%s was called twice!", __func__);
 	if (event_debug_mode_too_late)
@@ -534,7 +534,7 @@ event_base_new_with_config(const struct event_config *cfg)
 	struct event_base *base;
 	int should_check_environment;
 
-#ifndef EVENT__DISABLE_DEBUG_MODE
+#ifndef DISABLE_DEBUG_MODE
 	event_debug_mode_too_late = 1;
 #endif
 
@@ -637,7 +637,7 @@ event_base_new_with_config(const struct event_config *cfg)
 
 	/* prepare for threading */
 
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	if (EVTHREAD_LOCKING_ENABLED() &&
 	    (!cfg || !(cfg->flags & EVENT_BASE_FLAG_NOLOCK))) {
 		int r;
@@ -1440,7 +1440,7 @@ event_process_active_single_queue(struct event_base *base,
 
 
 		base->current_event = evcb;
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 		base->current_event_waiters = 0;
 #endif
 
@@ -1466,7 +1466,7 @@ event_process_active_single_queue(struct event_base *base,
 
 		EVBASE_ACQUIRE_LOCK(base, th_base_lock);
 		base->current_event = NULL;
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 		if (base->current_event_waiters) {
 			base->current_event_waiters = 0;
 			EVTHREAD_COND_BROADCAST(base->current_event_cond);
@@ -1687,7 +1687,7 @@ event_base_loop(struct event_base *base, int flags)
 
 	done = 0;
 
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	base->th_owner_id = EVTHREAD_GET_ID();
 #endif
 
@@ -2145,7 +2145,7 @@ evthread_notify_base_default(struct event_base *base)
 	return (r < 0 && ! EVUTIL_ERR_IS_EAGAIN(errno)) ? -1 : 0;
 }
 
-#ifdef EVENT__HAVE_EVENTFD
+#ifdef HAVE_EVENTFD
 /* Helper callback: wake an event_base from another thread.  This version
  * assumes that you have a working eventfd() implementation. */
 static int
@@ -2256,7 +2256,7 @@ event_add_nolock_(struct event *ev, const struct timeval *tv,
 	 * callback, and we are not the main thread, then we want to wait
 	 * until the callback is done before we mess with the event, or else
 	 * we can race on ev_ncalls and ev_pncalls below. */
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	if (base->current_event == event_to_event_callback(ev) &&
 	    (ev->ev_events & EV_SIGNAL)
 	    && !EVBASE_IN_THREAD(base)) {
@@ -2421,7 +2421,7 @@ event_del_nolock_(struct event *ev)
 	 * when this function returns, it will be safe to free the
 	 * user-supplied argument. */
 	base = ev->ev_base;
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	if (base->current_event == event_to_event_callback(ev) &&
 	    !EVBASE_IN_THREAD(base)) {
 		++base->current_event_waiters;
@@ -2527,7 +2527,7 @@ event_active_nolock_(struct event *ev, int res, short ncalls)
 		base->event_continue = 1;
 
 	if (ev->ev_events & EV_SIGNAL) {
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 		if (base->current_event == event_to_event_callback(ev) &&
 		    !EVBASE_IN_THREAD(base)) {
 			++base->current_event_waiters;
@@ -3014,13 +3014,13 @@ event_queue_make_later_events_active(struct event_base *base)
 const char *
 event_get_version(void)
 {
-	return (EVENT__VERSION);
+	return LIBEVENT_VERSION;
 }
 
 ev_uint32_t
 event_get_version_number(void)
 {
-	return (EVENT__NUMERIC_VERSION);
+	return LIBEVENT_VERSION_NUMBER;
 }
 
 /*
@@ -3034,7 +3034,7 @@ event_get_method(void)
 	return (current_base->evsel->name);
 }
 
-#ifndef EVENT__DISABLE_MM_REPLACEMENT
+#ifndef DISABLE_MM_REPLACEMENT
 static void *(*mm_malloc_fn_)(size_t sz) = NULL;
 static void *(*mm_realloc_fn_)(void *p, size_t sz) = NULL;
 static void (*mm_free_fn_)(void *p) = NULL;
@@ -3137,7 +3137,7 @@ event_set_mem_functions(void *(*malloc_fn)(size_t sz),
 }
 #endif
 
-#ifdef EVENT__HAVE_EVENTFD
+#ifdef HAVE_EVENTFD
 static void
 evthread_notify_drain_eventfd(evutil_socket_t fd, short what, void *arg)
 {
@@ -3197,7 +3197,7 @@ evthread_make_base_notifiable_nolock_(struct event_base *base)
 		return 0;
 	}
 
-#ifdef EVENT__BACKEND_KQUEUE
+#ifdef BACKEND_KQUEUE
 	if (base->evsel == &kqops && event_kq_add_notify_event_(base) == 0) {
 		base->th_notify_fn = event_kq_notify_base_;
 		/* No need to add an event here; the backend can wake
@@ -3206,7 +3206,7 @@ evthread_make_base_notifiable_nolock_(struct event_base *base)
 	}
 #endif
 
-#ifdef EVENT__HAVE_EVENTFD
+#ifdef HAVE_EVENTFD
 	base->th_notify_fd[0] = evutil_eventfd_(0,
 	    EVUTIL_EFD_CLOEXEC|EVUTIL_EFD_NONBLOCK);
 	if (base->th_notify_fd[0] >= 0) {
@@ -3400,14 +3400,14 @@ event_base_del_virtual_(struct event_base *base)
 static void
 event_free_debug_globals_locks(void)
 {
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
-#ifndef EVENT__DISABLE_DEBUG_MODE
+#ifndef DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_DEBUG_MODE
 	if (event_debug_map_lock_ != NULL) {
 		EVTHREAD_FREE_LOCK(event_debug_map_lock_, 0);
 		event_debug_map_lock_ = NULL;
 	}
-#endif /* EVENT__DISABLE_DEBUG_MODE */
-#endif /* EVENT__DISABLE_THREAD_SUPPORT */
+#endif /* DISABLE_DEBUG_MODE */
+#endif /* DISABLE_THREAD_SUPPORT */
 	return;
 }
 
@@ -3443,11 +3443,11 @@ libevent_global_shutdown(void)
 	event_free_globals();
 }
 
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 int
 event_global_setup_locks_(const int enable_locks)
 {
-#ifndef EVENT__DISABLE_DEBUG_MODE
+#ifndef DISABLE_DEBUG_MODE
 	EVTHREAD_SETUP_GLOBAL_LOCK(event_debug_map_lock_, 0);
 #endif
 	if (evsig_global_setup_locks_(enable_locks) < 0)

@@ -53,8 +53,7 @@
  * As in the select(2) implementation, signals are handled by evsignal.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+#include "config.h"
 
 #include <sys/time.h>
 #include <errno.h>

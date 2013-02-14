@@ -5,6 +5,8 @@
   XXX It's a little ugly and should probably be cleaned up.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>

@@ -19,7 +19,8 @@ AC_DEFINE(NUMERIC_VERSION, 0x02010201, [Numeric representation of the version])
 AC_CONFIG_SRCDIR(event.c)
 AC_CONFIG_AUX_DIR([config-aux])
 AC_CONFIG_MACRO_DIR([config-aux])
-AC_CONFIG_HEADERS([config.h  evconfig-private.h:evconfig-private.h.in])
+
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([libevent.pc libevent_openssl.pc libevent_pthreads.pc
                  Makefile])
 
@@ -53,6 +54,7 @@ AM_INIT_AUTOMAKE
 dnl AM_SILENT_RULES req. automake 1.11; OI ships 1.10.
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([no])])
 
+AM_CONDITIONAL([THREAD_SUPPORT], [test $enable_thread_support = yes])
 if test $enable_thread_support = no; then
    AC_DEFINE(DISABLE_THREAD_SUPPORT, 1,
 	[Define if libevent should not be compiled with thread support])

@@ -24,18 +24,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "util-internal.h"
+
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
 #endif
 
-#include "event2/event-config.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #ifndef _WIN32
@@ -65,6 +64,7 @@
 #include "evthread-internal.h"
 #include "log-internal.h"
 #include "time-internal.h"
+#include "util-internal.h"
 
 #include "regress.h"
 
@@ -1140,12 +1140,12 @@ test_signal_restore(void)
 {
 	struct event ev;
 	struct event_base *base = event_init();
-#ifdef EVENT__HAVE_SIGACTION
+#ifdef HAVE_SIGACTION
 	struct sigaction sa;
 #endif
 
 	test_ok = 0;
-#ifdef EVENT__HAVE_SIGACTION
+#ifdef HAVE_SIGACTION
 	sa.sa_handler = signal_cb_sa;
 	sa.sa_flags = 0x0;
 	sigemptyset(&sa.sa_mask);
@@ -2141,9 +2141,9 @@ end:
 		event_config_free(cfg);
 }
 
-#ifdef EVENT__HAVE_SETENV
+#ifdef HAVE_SETENV
 #define SETENV_OK
-#elif !defined(EVENT__HAVE_SETENV) && defined(EVENT__HAVE_PUTENV)
+#elif !defined(HAVE_SETENV) && defined(HAVE_PUTENV)
 static void setenv(const char *k, const char *v, int o_)
 {
 	char b[256];
@@ -2153,9 +2153,9 @@ static void setenv(const char *k, const char *v, int o_)
 #define SETENV_OK
 #endif
 
-#ifdef EVENT__HAVE_UNSETENV
+#ifdef HAVE_UNSETENV
 #define UNSETENV_OK
-#elif !defined(EVENT__HAVE_UNSETENV) && defined(EVENT__HAVE_PUTENV)
+#elif !defined(HAVE_UNSETENV) && defined(HAVE_PUTENV)
 static void unsetenv(const char *k)
 {
 	char b[256];
@@ -2193,7 +2193,7 @@ test_base_environ(void *arg)
 	setenv("EVENT_NOWAFFLES", "1", 1);
 	unsetenv("EVENT_NOWAFFLES");
 	if (getenv("EVENT_NOWAFFLES") != NULL) {
-#ifndef EVENT__HAVE_UNSETENV
+#ifndef HAVE_UNSETENV
 		TT_DECLARE("NOTE", ("Can't fake unsetenv; skipping test"));
 #else
 		TT_DECLARE("NOTE", ("unsetenv doesn't work; skipping test"));
@@ -2470,7 +2470,7 @@ end:
 }
 #endif
 
-#ifdef EVENT__DISABLE_MM_REPLACEMENT
+#ifdef DISABLE_MM_REPLACEMENT
 static void
 test_mm_functions(void *arg)
 {

@@ -33,11 +33,11 @@
  *
  */
 
-#include "event2/event-config.h"
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #ifdef _WIN32
@@ -52,7 +52,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef EVENT__HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <errno.h>

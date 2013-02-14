@@ -23,15 +23,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "../util-internal.h"
-#include "event2/event-config.h"
+
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef EVENT__HAVE_SYS_SOCKET_H
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 #include <fcntl.h>
@@ -46,6 +46,7 @@
 
 #include "event2/event.h"
 #include "event2/util.h"
+#include "util-internal.h"
 
 #include "regress.h"
 
@@ -162,7 +163,7 @@ test_edgetriggered_mix_error(void *data_)
 	struct event_base *base = NULL;
 	struct event *ev_et=NULL, *ev_lt=NULL;
 
-#ifdef EVENT__DISABLE_DEBUG_MODE
+#ifdef DISABLE_DEBUG_MODE
 	if (1)
 		tt_skip();
 #endif

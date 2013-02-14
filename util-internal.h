@@ -26,19 +26,16 @@
 #ifndef UTIL_INTERNAL_H_INCLUDED_
 #define UTIL_INTERNAL_H_INCLUDED_
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
-
 #include <errno.h>
 
 /* For EVUTIL_ASSERT */
 #include "log-internal.h"
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef EVENT__HAVE_SYS_SOCKET_H
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
-#ifdef EVENT__HAVE_SYS_EVENTFD_H
+#ifdef HAVE_SYS_EVENTFD_H
 #include <sys/eventfd.h>
 #endif
 #include "event2/util.h"
@@ -48,14 +45,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-/* If we need magic to say "inline", get it for free internally. */
-#ifdef EVENT__inline
-#define inline EVENT__inline
-#endif
-#ifdef EVENT____func__
-#define __func__ EVENT____func__
 #endif
 
 /* A good no-op to use in macro definitions. */
@@ -330,7 +319,7 @@ ev_int32_t evutil_weakrand_range_(struct evutil_weakrand_state *seed, ev_int32_t
 #define EVUTIL_FAILURE_CHECK(cond) EVUTIL_UNLIKELY(cond)
 #endif
 
-#ifndef EVENT__HAVE_STRUCT_SOCKADDR_STORAGE
+#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
 /* Replacement for sockaddr storage that we can use internally on platforms
  * that lack it.  It is not space-efficient, but neither is sockaddr_storage.
  */
@@ -427,7 +416,7 @@ HANDLE evutil_load_windows_system_library_(const TCHAR *library_name);
 #endif
 
 #ifndef EV_SIZE_FMT
-#if (EVENT__SIZEOF_SIZE_T <= EVENT__SIZEOF_LONG)
+#if (SIZEOF_SIZE_T <= SIZEOF_LONG)
 #define EV_SIZE_FMT "%lu"
 #define EV_SSIZE_FMT "%ld"
 #define EV_SIZE_ARG(x) ((unsigned long)(x))

@@ -24,13 +24,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+
+#include "config.h"
 
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/resource.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #include <sys/epoll.h>
@@ -42,7 +42,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-#ifdef EVENT__HAVE_SYS_TIMERFD_H
+#ifdef HAVE_SYS_TIMERFD_H
 #include <sys/timerfd.h>
 #endif
 
@@ -55,8 +55,8 @@
 #include "changelist-internal.h"
 #include "time-internal.h"
 
-#if defined(EVENT__HAVE_SYS_TIMERFD_H) &&			  \
-	defined(EVENT__HAVE_TIMERFD_CREATE) &&			  \
+#if defined(HAVE_SYS_TIMERFD_H) &&			  \
+	defined(HAVE_TIMERFD_CREATE) &&			  \
 	defined(HAVE_POSIX_MONOTONIC) && defined(TFD_NONBLOCK) && \
 	defined(TFD_CLOEXEC)
 /* Note that we only use timerfd if TFD_NONBLOCK and TFD_CLOEXEC are available
@@ -126,7 +126,7 @@ epoll_init(struct event_base *base)
 	int epfd = -1;
 	struct epollop *epollop;
 
-#ifdef EVENT__HAVE_EPOLL_CREATE1
+#ifdef HAVE_EPOLL_CREATE1
 	/* First, try the shiny new epoll_create1 interface, if we have it. */
 	epfd = epoll_create1(EPOLL_CLOEXEC);
 #endif

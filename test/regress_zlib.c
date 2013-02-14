@@ -24,6 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 /* The old tests here need assertions to work. */
 #undef NDEBUG
 
@@ -31,8 +33,6 @@
 #include <winsock2.h>
 #include <windows.h>
 #endif
-
-#include "event2/event-config.h"
 
 #include <sys/types.h>
 #ifndef _WIN32

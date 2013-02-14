@@ -24,7 +24,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "util-internal.h"
+
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -39,12 +40,6 @@
 #define FORK_BREAKS_GCOV
 #include <vproc.h>
 #endif
-#endif
-
-#include "event2/event-config.h"
-
-#ifdef EVENT____func__
-#define __func__ EVENT____func__
 #endif
 
 #include <sys/types.h>
@@ -74,8 +69,10 @@
 #include "regress.h"
 #include "tinytest.h"
 #include "tinytest_macros.h"
-#include "../iocp-internal.h"
-#include "../event-internal.h"
+#include "iocp-internal.h"
+#include "event-internal.h"
+#include "util-internal.h"
+
 
 long
 timeval_msec_diff(const struct timeval *start, const struct timeval *end)
@@ -115,7 +112,7 @@ regress_make_tmpfile(const void *data, size_t datalen, char **filename_out)
 	int fd;
 	*filename_out = NULL;
 	strcpy(tmpfilename, "/tmp/eventtmp.XXXXXX");
-#ifdef EVENT__HAVE_UMASK
+#ifdef HAVE_UMASK
 	umask(0077);
 #endif
 	fd = mkstemp(tmpfilename);
@@ -347,7 +344,7 @@ const struct testcase_setup_t legacy_setup = {
 
 /* ============================================================ */
 
-#if (!defined(EVENT__HAVE_PTHREAD) && !defined(_WIN32)) || defined(EVENT__DISABLE_THREAD_SUPPORT)
+#if (!defined(HAVE_PTHREAD) && !defined(_WIN32)) || defined(DISABLE_THREAD_SUPPORT)
 struct testcase_t thread_testcases[] = {
 	{ "basic", NULL, TT_SKIP, NULL, NULL },
 	END_OF_TESTCASES
@@ -373,7 +370,7 @@ struct testgroup_t testgroups[] = {
 	{ "iocp/bufferevent/", bufferevent_iocp_testcases },
 	{ "iocp/listener/", listener_iocp_testcases },
 #endif
-#ifdef EVENT__HAVE_OPENSSL
+#ifdef HAVE_OPENSSL
 	{ "ssl/", ssl_testcases },
 #endif
 	END_OF_GROUPS
@@ -420,7 +417,7 @@ main(int argc, const char **argv)
 	tinytest_skip(testgroups, "http/connection_retry");
 #endif
 
-#ifndef EVENT__DISABLE_THREAD_SUPPORT
+#ifndef DISABLE_THREAD_SUPPORT
 	if (!getenv("EVENT_NO_DEBUG_LOCKS"))
 		evthread_enable_lock_debugging();
 #endif

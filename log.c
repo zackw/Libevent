@@ -37,8 +37,7 @@
  * SUCH DAMAGE.
  */
 
-#include "event2/event-config.h"
-#include "evconfig-private.h"
+#include "config.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
