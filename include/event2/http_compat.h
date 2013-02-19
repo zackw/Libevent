@@ -38,14 +38,9 @@
 extern "C" {
 #endif
 
-#include <event2/event-config.h>
-#include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-/* For int types. */
-#include <event2/util.h>
+struct evhttp;
+struct evhttp_connection;
+struct event_base;
 
 /**
  * Start an HTTP server on the specified address and port

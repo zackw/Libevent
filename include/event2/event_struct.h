@@ -36,17 +36,6 @@
   for historical reasons, these fields would not be exposed at all.
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <event2/event-config.h>
-#include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-/* For int types. */
 #include <event2/util.h>
 
 /* For evkeyvalq */
@@ -55,6 +44,10 @@ extern "C" {
 /* For EVENT__LIST_ENTRY, EVENT__LIST_HEAD,
        EVENT__TAILQ_ENTRY, EVENT__TAILQ_HEAD */
 #include <event2/qutil.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define EVLIST_TIMEOUT	    0x01
 #define EVLIST_INSERTED	    0x02

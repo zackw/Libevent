@@ -33,11 +33,14 @@
 
  */
 
-#ifdef __cplusplus
-extern "C" {
+#include <event2/event-config.h>
+
+/* Some openbsd autoconf versions get the name of this macro wrong. */
+#if defined(EVENT__SIZEOF_VOID__) && !defined(EVENT__SIZEOF_VOID_P)
+#define EVENT__SIZEOF_VOID_P EVENT__SIZEOF_VOID__
 #endif
 
-#include <event2/event-config.h>
+
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -69,9 +72,8 @@ extern "C" {
 #include <sys/socket.h>
 #endif
 
-/* Some openbsd autoconf versions get the name of this macro wrong. */
-#if defined(EVENT__SIZEOF_VOID__) && !defined(EVENT__SIZEOF_VOID_P)
-#define EVENT__SIZEOF_VOID_P EVENT__SIZEOF_VOID__
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /**

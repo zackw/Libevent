@@ -27,14 +27,15 @@
 #ifndef EVENT2_LISTENER_H_INCLUDED_
 #define EVENT2_LISTENER_H_INCLUDED_
 
+#include <event2/util.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <event2/event.h>
-
 struct sockaddr;
 struct evconnlistener;
+struct event_base;
 
 /**
    A callback that we invoke when a listener has a new connection.

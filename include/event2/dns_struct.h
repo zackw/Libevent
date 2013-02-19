@@ -38,24 +38,10 @@
 extern "C" {
 #endif
 
-#include <event2/event-config.h>
-#include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-/* For int types. */
-#include <event2/util.h>
-
 /*
  * Structures used to implement a DNS server.
  */
 
-struct evdns_server_request {
-	int flags;
-	int nquestions;
-	struct evdns_server_question **questions;
-};
 struct evdns_server_question {
 	int type;
 #ifdef __cplusplus
@@ -68,6 +54,12 @@ struct evdns_server_question {
 #define dns_question_class class
 #endif
 	char name[1];
+};
+
+struct evdns_server_request {
+	int flags;
+	int nquestions;
+	struct evdns_server_question **questions;
 };
 
 #ifdef __cplusplus

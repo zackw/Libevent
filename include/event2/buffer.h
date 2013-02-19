@@ -72,17 +72,15 @@
   evbuffer_peek() if you don't require that the memory to be contiguous.
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <event2/util.h>
 
-#include <event2/event-config.h>
-#include <stdarg.h>
-#include <sys/types.h>
 #ifdef EVENT__HAVE_SYS_UIO_H
 #include <sys/uio.h>
 #endif
-#include <event2/util.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
    An evbuffer is an opaque data type for efficiently buffering data to be

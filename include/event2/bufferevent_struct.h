@@ -37,20 +37,11 @@
     written before Libevent 2.0 that used them.
  */
 
+#include <event2/event_struct.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <event2/event-config.h>
-#include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-/* For int types. */
-#include <event2/util.h>
-/* For struct event */
-#include <event2/event_struct.h>
 
 struct event_watermark {
 	size_t low;

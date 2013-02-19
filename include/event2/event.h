@@ -180,20 +180,12 @@
   Core functions for waiting for and receiving events, and using event bases.
 */
 
+#include <event2/util.h>
+#include <stdio.h> /* for FILE */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <event2/event-config.h>
-#include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#include <stdio.h>
-
-/* For int types. */
-#include <event2/util.h>
 
 /**
  * Structure to hold information and state for a Libevent dispatch loop.

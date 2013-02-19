@@ -35,18 +35,11 @@
 
  */
 
+#include <event2/util.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <event2/event-config.h>
-#include <sys/types.h>
-#ifdef EVENT__HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-/* For int types. */
-#include <event2/util.h>
 
 /**
   Initialize the asynchronous DNS library.
