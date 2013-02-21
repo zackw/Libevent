@@ -105,7 +105,6 @@ EXTRA_DIST = \
 	ChangeLog-2.0 \
 	Doxyfile \
 	LICENSE \
-	Makefile.nmake test/Makefile.nmake \
 	autogen.sh \
 	event_rpcgen.py \
 	libevent.pc.in \
