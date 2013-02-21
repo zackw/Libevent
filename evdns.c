@@ -2716,7 +2716,7 @@ request_new(struct evdns_base *base, struct evdns_request *handle, int type,
 	if (base->global_randomize_case) {
 		unsigned i;
 		char randbits[(sizeof(namebuf)+7)/8];
-		strlcpy(namebuf, name, sizeof(namebuf));
+		event_strlcpy(namebuf, name, sizeof(namebuf));
 		evutil_secure_rng_get_bytes(randbits, (name_len+7)/8);
 		for (i = 0; i < name_len; ++i) {
 			if (EVUTIL_ISALPHA_(namebuf[i])) {
@@ -4081,9 +4081,9 @@ evdns_base_load_hosts_impl(struct evdns_base *base, const char *hosts_fname)
 	if (hosts_fname == NULL ||
 	    (err = evutil_read_file_(hosts_fname, &str, &len, 0)) < 0) {
 		char tmp[64];
-		strlcpy(tmp, "127.0.0.1   localhost", sizeof(tmp));
+		event_strlcpy(tmp, "127.0.0.1   localhost", sizeof(tmp));
 		evdns_base_parse_hosts_line(base, tmp);
-		strlcpy(tmp, "::1   localhost", sizeof(tmp));
+		event_strlcpy(tmp, "::1   localhost", sizeof(tmp));
 		evdns_base_parse_hosts_line(base, tmp);
 		return err ? -1 : 0;
 	}

@@ -645,15 +645,15 @@ test_evutil_strlcpy(void *arg)
 	char buf[8];
 
 	/* Successful case. */
-	tt_int_op(5, ==, strlcpy(buf, "Hello", sizeof(buf)));
+	tt_int_op(5, ==, event_strlcpy(buf, "Hello", sizeof(buf)));
 	tt_str_op(buf, ==, "Hello");
 
 	/* Overflow by a lot. */
-	tt_int_op(13, ==, strlcpy(buf, "pentasyllabic", sizeof(buf)));
+	tt_int_op(13, ==, event_strlcpy(buf, "pentasyllabic", sizeof(buf)));
 	tt_str_op(buf, ==, "pentasy");
 
 	/* Overflow by exactly one. */
-	tt_int_op(8, ==, strlcpy(buf, "overlong", sizeof(buf)));
+	tt_int_op(8, ==, event_strlcpy(buf, "overlong", sizeof(buf)));
 	tt_str_op(buf, ==, "overlon");
 end:
 	;

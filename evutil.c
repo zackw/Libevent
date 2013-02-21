@@ -1751,7 +1751,7 @@ evutil_inet_ntop(int af, const void *src, char *dst, size_t len)
 			}
 			if (strlen(buf) > len)
 				return NULL;
-			strlcpy(dst, buf, len);
+			event_strlcpy(dst, buf, len);
 			return dst;
 		}
 		i = 0;
@@ -1793,7 +1793,7 @@ evutil_inet_ntop(int af, const void *src, char *dst, size_t len)
 		*cp = '\0';
 		if (strlen(buf) > len)
 			return NULL;
-		strlcpy(dst, buf, len);
+		event_strlcpy(dst, buf, len);
 		return dst;
 #endif
 	} else {
