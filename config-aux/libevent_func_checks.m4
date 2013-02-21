@@ -173,6 +173,9 @@ main(int argc, char **argv)
       if test $ac_cv_syscall_epoll = yes; then
         libevent_have_epoll=yes
         AC_LIBOBJ([epoll_sub])
+        AC_DEFINE([NEED_EPOLL_SYSCALLS], [1],
+  [Define if your system supports the `epoll' interface but your C library
+   lacks the necessary system call wrappers.])
       fi
     fi
   fi

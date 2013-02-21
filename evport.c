@@ -55,6 +55,8 @@
 
 #include "config.h"
 
+#ifdef BACKEND_EVPORT
+
 #include <sys/time.h>
 #include <errno.h>
 #include <poll.h>
@@ -443,3 +445,5 @@ evport_dealloc(struct event_base *base)
 
 	mm_free(evpd);
 }
+
+#endif /* BACKEND_EVPORT */

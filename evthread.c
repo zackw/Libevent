@@ -26,6 +26,8 @@
 
 #include "config.h"
 
+#ifndef DISABLE_THREAD_SUPPORT
+
 #include "event2/thread.h"
 
 #include <stdlib.h>
@@ -457,3 +459,5 @@ evthreadimpl_locking_enabled_(void)
 	return evthread_lock_fns_.lock != NULL;
 }
 #endif
+
+#endif /* DISABLE_THREAD_SUPPORT */

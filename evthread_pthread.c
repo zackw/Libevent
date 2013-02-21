@@ -26,6 +26,8 @@
 
 #include "config.h"
 
+#if !defined DISABLE_THREAD_SUPPORT && defined HAVE_PTHREAD
+
 #include <pthread.h>
 
 struct event_base;
@@ -186,3 +188,5 @@ evthread_use_pthreads(void)
 	evthread_set_id_callback(evthread_posix_get_id);
 	return 0;
 }
+
+#endif /* !DISABLE_THREAD_SUPPORT && HAVE_PTHREAD */

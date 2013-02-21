@@ -27,6 +27,8 @@
 
 #include "config.h"
 
+#ifdef BACKEND_DEVPOLL
+
 #include <sys/types.h>
 #include <sys/resource.h>
 #ifdef HAVE_SYS_TIME_H
@@ -304,3 +306,5 @@ devpoll_dealloc(struct event_base *base)
 	memset(devpollop, 0, sizeof(struct devpollop));
 	mm_free(devpollop);
 }
+
+#endif /* BACKEND_DEVPOLL */

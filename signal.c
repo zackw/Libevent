@@ -1,5 +1,3 @@
-/*	$OpenBSD: select.c,v 1.2 2002/06/25 15:50:15 mickey Exp $	*/
-
 /*
  * Copyright 2000-2007 Niels Provos <provos@citi.umich.edu>
  * Copyright 2007-2012 Niels Provos and Nick Mathewson
@@ -28,6 +26,8 @@
  */
 
 #include "config.h"
+
+#ifdef BACKEND_NEED_SIGNAL
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -474,3 +474,5 @@ evsig_global_setup_locks_(const int enable_locks)
 }
 
 #endif
+
+#endif /* BACKEND_NEED_SIGNAL */

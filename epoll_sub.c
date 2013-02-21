@@ -27,6 +27,8 @@
 
 #include "config.h"
 
+#ifdef NEED_EPOLL_SYSCALLS
+
 #include <stdint.h>
 #include <sys/param.h>
 #include <sys/types.h>
@@ -52,3 +54,5 @@ epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 {
 	return (syscall(__NR_epoll_wait, epfd, events, maxevents, timeout));
 }
+
+#endif

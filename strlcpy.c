@@ -29,8 +29,9 @@
 
 #include "config.h"
 
-#include <sys/types.h>
+#ifndef HAVE_STRLCPY
 
+#include <sys/types.h>
 #include "strlcpy-internal.h"
 
 /*
@@ -66,3 +67,5 @@ event_strlcpy_(dst, src, siz)
 
 	return (s - src - 1);	/* count does not include NUL */
 }
+
+#endif /* !HAVE_STRLCPY */

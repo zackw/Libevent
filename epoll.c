@@ -27,6 +27,8 @@
 
 #include "config.h"
 
+#ifdef BACKEND_EPOLL
+
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/resource.h>
@@ -675,3 +677,5 @@ epoll_dealloc(struct event_base *base)
 	memset(epollop, 0, sizeof(struct epollop));
 	mm_free(epollop);
 }
+
+#endif /* BACKEND_EPOLL */

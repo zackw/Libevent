@@ -71,6 +71,10 @@ AC_DEFUN([LIBEVENT_FINALIZE_BACKENDS],
 m4_divert_text([HELP_ENABLE],
   [    (choose from: m4_set_contents([libevent_backend_set],[ ]))])
 AM_CONDITIONAL(BACKEND_NEED_SIGNAL, [test $backend_need_signal = yes])
+AS_IF([test $backend_need_signal = yes],
+ [AC_DEFINE([BACKEND_NEED_SIGNAL], [1],
+            [Define if any backends need the generic signal helpers.])
+])
 AS_IF([test "x$selected_backends" != x],
   [AC_MSG_NOTICE([libevent will include these backends:$selected_backends])],
   [enable_backends_s=`echo $enable_backends | tr ',' ' '`

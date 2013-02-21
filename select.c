@@ -29,6 +29,8 @@
 
 #include "config.h"
 
+#ifdef BACKEND_SELECT
+
 #ifdef __APPLE__
 /* Apple wants us to define this if we might ever pass more than
  * FD_SETSIZE bits to select(). */
@@ -339,3 +341,5 @@ select_dealloc(struct event_base *base)
 
 	select_free_selectop(base->evbase);
 }
+
+#endif /* BACKEND_SELECT */

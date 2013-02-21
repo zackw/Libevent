@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+#if defined BACKEND_SELECT && defined _WIN32
+
 #include <winsock2.h>
 #include <windows.h>
 #include <sys/types.h>
@@ -381,3 +383,5 @@ win32_dealloc(struct event_base *base)
 	memset(win32op, 0, sizeof(win32op));
 	mm_free(win32op);
 }
+
+#endif /* BACKEND_SELECT && _WIN32 */

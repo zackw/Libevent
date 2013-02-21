@@ -26,7 +26,8 @@
 
 #include "config.h"
 
-#ifdef _WIN32
+#if !defined DISABLE_THREAD_SUPPORT && defined _WIN32
+
 #ifndef _WIN32_WINNT
 /* Minimum required for InitializeCriticalSectionAndSpinCount */
 #define _WIN32_WINNT 0x0403
@@ -36,7 +37,7 @@
 #include <windows.h>
 #undef WIN32_LEAN_AND_MEAN
 #include <sys/locking.h>
-#endif
+
 
 struct event_base;
 #include "event2/thread.h"
@@ -339,3 +340,4 @@ evthread_use_windows_threads(void)
 	return 0;
 }
 
+#endif /* !DISABLE_THREAD_SUPPORT && _WIN32 */

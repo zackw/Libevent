@@ -29,6 +29,8 @@
 
 #include "config.h"
 
+#ifdef BACKEND_KQUEUE
+
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -542,3 +544,5 @@ event_kq_notify_base_(struct event_base *base)
 	return -1;
 #endif
 }
+
+#endif /* BACKEND_KQUEUE */
