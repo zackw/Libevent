@@ -28,47 +28,16 @@
 #define ARC4RANDOM_INTERNAL_H_INCLUDED_
 
 #include <event2/util.h>
-
-/* Including arc4random-internal.h should always bring in stdlib.h,
-   regardless of whether we need to define our own arc4random.  */
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef HAVE_ARC4RANDOM
 
 #define ev_arc4random() arc4random()
 #define ev_arc4random_addrandom(buf_, n_) arc4random_addrandom(buf_, n_)
-#define ev_arc4random_setup_locks(enable_) ((enable_), 0)
+#define ev_arc4random_setup_locks(enable_) ((void)(enable_), 0)
 #define ev_arc4random_free_locks() do { } while (0)
 
-#else
-
-extern ev_uint32_t ev_arc4random_(void);
-#define ev_arc4random() ev_arc4random_()
-
-extern void ev_arc4random_addrandom_(unsigned char *buf, int n);
-#define ev_arc4random_addrandom(buf_, n_) ev_arc4random_addrandom_(buf_, n_)
-
-#ifdef DISABLE_THREAD_SUPPORT
-
-#define ev_arc4random_setup_locks(enable_) ((enable_), 0)
-#define ev_arc4random_free_locks() do { } while (0)
-
-#else
-
-extern int ev_arc4random_setup_locks_(int enable_locks);
-#define ev_arc4random_setup_locks(enable_) ev_arc4random_setup_locks_(enable_)
-
-extern void ev_arc4random_free_locks_(void);
-#define ev_arc4random_free_locks() ev_arc4random_free_locks_()
-
-#endif /* !DISABLE_THREAD_SUPPORT */
-#endif /* !HAVE_ARC4RANDOM */
-
-#ifdef HAVE_ARC4RANDOM_BUF
-
-#ifndef __APPLE__
-#define ev_arc4random_buf(buf_, n_) arc4random_buf(buf_, n_)
-#else
 /* OSX 10.7 introduced arc4random_buf, so if you build your program
  * there, you'll get surprised when older versions of OSX fail to run.
  * To solve this, we can check whether the function pointer is set,
@@ -78,9 +47,12 @@ extern void ev_arc4random_free_locks_(void);
 static inline void
 ev_arc4random_buf(void *buf, size_t n)
 {
+	unsigned char *b = buf;
+#ifdef HAVE_ARC4RANDOM_BUF
 	if (arc4random_buf != NULL) {
 		return arc4random_buf(buf, n);
 	}
+#endif
 	/* Make sure that we start out with b at a 4-byte alignment; plenty
 	 * of CPUs care about this for 32-bit access. */
 	if (n >= 4 && ((ev_uintptr_t)b) & 3) {
@@ -100,13 +72,33 @@ ev_arc4random_buf(void *buf, size_t n)
 		memcpy(b, &u, n);
 	}
 }
-#endif /* __APPLE__ */
 
-#else /* !HAVE_ARC4RANDOM_BUF */
+#else
+
+extern ev_uint32_t ev_arc4random_(void);
+#define ev_arc4random() ev_arc4random_()
+
+extern void ev_arc4random_addrandom_(unsigned char *buf, int n);
+#define ev_arc4random_addrandom(buf_, n_) ev_arc4random_addrandom_(buf_, n_)
 
 extern void ev_arc4random_buf_(void *buf, size_t n);
 #define ev_arc4random_buf(buf_, n_) ev_arc4random_buf_(buf_, n_)
 
-#endif /* !HAVE_ARC4RANDOM_BUF */
+#ifdef DISABLE_THREAD_SUPPORT
+
+#define ev_arc4random_setup_locks(enable_) ((void)(enable_), 0)
+#define ev_arc4random_free_locks() do { } while (0)
+
+#else
+
+extern int ev_arc4random_setup_locks_(int enable_locks);
+#define ev_arc4random_setup_locks(enable_) ev_arc4random_setup_locks_(enable_)
+
+extern void ev_arc4random_free_locks_(void);
+#define ev_arc4random_free_locks() ev_arc4random_free_locks_()
+
+#endif /* !DISABLE_THREAD_SUPPORT */
+#endif /* !HAVE_ARC4RANDOM */
+
 
 #endif /* arc4random-internal.h */
