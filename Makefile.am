@@ -246,6 +246,7 @@ libevent_openssl_la_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCS)
 endif
 
 noinst_HEADERS +=				\
+	arc4random-internal.h			\
 	bufferevent-internal.h			\
 	changelist-internal.h			\
 	defer-internal.h			\

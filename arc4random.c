@@ -2,9 +2,6 @@
  * Portable version by Chris Davis, adapted for Libevent by Nick Mathewson
  * Copyright (c) 2010 Chris Davis, Niels Provos, and Nick Mathewson
  * Copyright (c) 2010-2012 Niels Provos and Nick Mathewson
- *
- * Note that in Libevent, this file isn't compiled directly.  Instead,
- * it's included from evutil_rand.c
  */
 
 /*
@@ -41,16 +38,18 @@
  * RC4 is a registered trademark of RSA Laboratories.
  */
 
-#ifndef ARC4RANDOM_EXPORT
-#define ARC4RANDOM_EXPORT
-#endif
-
-#ifndef ARC4RANDOM_UINT32
-#define ARC4RANDOM_UINT32 uint32_t
-#endif
-
-#ifndef ARC4RANDOM_NO_INCLUDES
 #include "config.h"
+
+#ifndef HAVE_ARC4RANDOM
+
+#include "arc4random-internal.h"
+#include "evthread-internal.h"
+#include "util-internal.h"
+
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+
 #ifdef _WIN32
 #include <wincrypt.h>
 #include <process.h>
@@ -63,10 +62,7 @@
 #include <sys/sysctl.h>
 #endif
 #endif
-#include <limits.h>
-#include <stdlib.h>
-#include <string.h>
-#endif
+
 
 /* Add platform entropy 32 bytes (256 bits) at a time. */
 #define ADD_ENTROPY 32
@@ -433,21 +429,47 @@ arc4_getword(void)
 	return val;
 }
 
-#ifndef ARC4RANDOM_NOSTIR
-ARC4RANDOM_EXPORT int
-arc4random_stir(void)
+/* thread locking */
+
+#ifdef DISABLE_THREAD_SUPPORT
+#define ARC4_LOCK_() do { } while (0)
+#define ARC4_UNLOCK_() do { } while (0)
+#else
+static void *arc4rand_lock;
+#define ARC4_LOCK_() EVLOCK_LOCK(arc4rand_lock, 0)
+#define ARC4_UNLOCK_() EVLOCK_UNLOCK(arc4rand_lock, 0)
+
+int
+ev_arc4random_setup_locks_(int enable_locks)
 {
-	int val;
-	ARC4_LOCK_();
-	val = arc4_stir();
-	ARC4_UNLOCK_();
-	return val;
+	EVTHREAD_SETUP_GLOBAL_LOCK(arc4rand_lock, 0);
+        return 0;
+}
+
+void
+ev_arc4random_free_locks_(void)
+{
+	if (arc4rand_lock != NULL) {
+		EVTHREAD_FREE_LOCK(arc4rand_lock, 0);
+		arc4rand_lock = NULL;
+	}
 }
 #endif
 
-#ifndef ARC4RANDOM_NOADDRANDOM
-ARC4RANDOM_EXPORT void
-arc4random_addrandom(const unsigned char *dat, int datlen)
+ev_uint32_t
+ev_arc4random_(void)
+{
+	ev_uint32_t val;
+	ARC4_LOCK_();
+	arc4_count -= 4;
+	arc4_stir_if_needed();
+	val = arc4_getword();
+	ARC4_UNLOCK_();
+	return val;
+}
+
+void
+ev_arc4random_addrandom_(unsigned char *dat, int datlen)
 {
 	int j;
 	ARC4_LOCK_();
@@ -462,24 +484,9 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 	}
 	ARC4_UNLOCK_();
 }
-#endif
 
-#ifndef ARC4RANDOM_NORANDOM
-ARC4RANDOM_EXPORT ARC4RANDOM_UINT32
-arc4random(void)
-{
-	ARC4RANDOM_UINT32 val;
-	ARC4_LOCK_();
-	arc4_count -= 4;
-	arc4_stir_if_needed();
-	val = arc4_getword();
-	ARC4_UNLOCK_();
-	return val;
-}
-#endif
-
-ARC4RANDOM_EXPORT void
-arc4random_buf(void *buf_, size_t n)
+void
+ev_arc4random_buf_(void *buf_, size_t n)
 {
 	unsigned char *buf = buf_;
 	ARC4_LOCK_();
@@ -492,49 +499,4 @@ arc4random_buf(void *buf_, size_t n)
 	ARC4_UNLOCK_();
 }
 
-#ifndef ARC4RANDOM_NOUNIFORM
-/*
- * Calculate a uniformly distributed random number less than upper_bound
- * avoiding "modulo bias".
- *
- * Uniformity is achieved by generating new random numbers until the one
- * returned is outside the range [0, 2**32 % upper_bound).  This
- * guarantees the selected random number will be inside
- * [2**32 % upper_bound, 2**32) which maps back to [0, upper_bound)
- * after reduction modulo upper_bound.
- */
-ARC4RANDOM_EXPORT unsigned int
-arc4random_uniform(unsigned int upper_bound)
-{
-	ARC4RANDOM_UINT32 r, min;
-
-	if (upper_bound < 2)
-		return 0;
-
-#if (UINT_MAX > 0xffffffffUL)
-	min = 0x100000000UL % upper_bound;
-#else
-	/* Calculate (2**32 % upper_bound) avoiding 64-bit math */
-	if (upper_bound > 0x80000000)
-		min = 1 + ~upper_bound;		/* 2**32 - upper_bound */
-	else {
-		/* (2**32 - (x * 2)) % x == 2**32 % x when x <= 2**31 */
-		min = ((0xffffffff - (upper_bound * 2)) + 1) % upper_bound;
-	}
-#endif
-
-	/*
-	 * This could theoretically loop forever but each retry has
-	 * p > 0.5 (worst case, usually far better) of selecting a
-	 * number inside the range we need, so it should rarely need
-	 * to re-roll.
-	 */
-	for (;;) {
-		r = arc4random();
-		if (r >= min)
-			break;
-	}
-
-	return r % upper_bound;
-}
-#endif
+#endif /* HAVE_ARC4RANDOM */

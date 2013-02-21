@@ -368,9 +368,9 @@ void *evthread_setup_global_lock_(void *lock_, unsigned locktype,
 		}							\
 	} while (0);
 
-int event_global_setup_locks_(const int enable_locks);
-int evsig_global_setup_locks_(const int enable_locks);
-int evutil_secure_rng_global_setup_locks_(const int enable_locks);
+int event_global_setup_locks_(int enable_locks);
+int evsig_global_setup_locks_(int enable_locks);
+int evutil_secure_rng_global_setup_locks_(int enable_locks);
 
 #endif
 

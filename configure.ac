@@ -330,6 +330,7 @@ AC_CHECK_FUNCS([ \
   setrlimit \
   sigaction \
   strsep \
+  strlcpy \
   strtok_r \
   strtoll \
   sysctl \
@@ -340,7 +341,15 @@ AC_CHECK_FUNCS([ \
   vasprintf \
 ])
 
-AC_REPLACE_FUNCS([strlcpy])
+# If we don't have these, provide replacements for them.
+dnl We don't use AC_REPLACE_FUNCS because the generated script is
+dnl more compact this way.
+if test $ac_cv_func_strlcpy != yes; then
+  AC_LIBOBJ([strlcpy])
+fi
+if test $ac_cv_func_arc4random != yes; then
+  AC_LIBOBJ([arc4random])
+fi
 
 LIBEVENT_FUNC_GETADDRINFO
 LIBEVENT_FUNC_GETHOSTBYNAME_R
