@@ -56,9 +56,6 @@
 #endif
 #include <stdarg.h>
 #ifdef EVENT__HAVE_NETDB_H
-#if !defined(_GNU_SOURCE)
-#define _GNU_SOURCE
-#endif
 #include <netdb.h>
 #endif
 
