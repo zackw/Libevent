@@ -8,7 +8,7 @@ SYSNAME=`uname`
 if [ "x$SYSNAME" = "xDarwin" ] ; then
   LIBTOOLIZE=glibtoolize
 fi
-aclocal -I m4 && \
+aclocal -I m4 --install && \
 	autoheader && \
 	$LIBTOOLIZE && \
 	autoconf && \

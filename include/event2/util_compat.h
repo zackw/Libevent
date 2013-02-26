@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2000-2007 Niels Provos <provos@citi.umich.edu>
  * Copyright (c) 2007-2012 Niels Provos and Nick Mathewson
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,40 +23,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef EVENT1_EVENT_H_INCLUDED_
-#define EVENT1_EVENT_H_INCLUDED_
+#ifndef EVENT2_UTIL_COMPAT_H_INCLUDED_
+#define EVENT2_UTIL_COMPAT_H_INCLUDED_
 
-/** @file event.h
+/** @file event2/util_compat.h
 
-  A library for writing event-driven network servers.
+    Grab bag of definitions which used to be exposed in util.h despite
+    being intended primarily for internal use.  Preserved here for
+    backward compatibility's sake.
 
-  The <event.h> header is deprecated in Libevent 2.0 and later; please
-  use <event2/event.h> instead.  Depending on what functionality you
-  need, you may also want to include more of the other event2/
-  headers.
  */
 
 #include <event2/util.h>
-#include <event2/util_compat.h>
-#include <event2/event.h>
-#include <event2/event_struct.h>
-#include <event2/event_compat.h>
-#include <event2/buffer.h>
-#include <event2/buffer_compat.h>
-#include <event2/bufferevent.h>
-#include <event2/bufferevent_struct.h>
-#include <event2/bufferevent_compat.h>
-#include <event2/tag.h>
-#include <event2/tag_compat.h>
 
-#ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#undef WIN32_LEAN_AND_MEAN
-typedef unsigned char u_char;
-typedef unsigned short u_short;
+#ifdef EVENT__HAVE_STDINT_H
+#include <stdint.h>
+#elif defined(EVENT__HAVE_INTTYPES_H)
+#include <inttypes.h>
 #endif
 
-#endif /* EVENT1_EVENT_H_INCLUDED_ */
+#endif

@@ -208,16 +208,58 @@ if test "x$ac_cv_header_sys_sysctl_h" = xyes; then
 fi
 
 AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
 
-AC_CHECK_TYPES([uint64_t, uint32_t, uint16_t, uint8_t, uintptr_t], , ,
-[#ifdef HAVE_STDINT_H
+if test $have_pthread = yes; then
+  AC_CHECK_SIZEOF(pthread_t, , [
+AC_INCLUDES_DEFAULT
+#include <pthread.h>
+])
+fi
+
+# Common header pattern for uint*_t.
+# We intentionally use a subset of the AC_INCLUDES_DEFAULT set because
+# we want to be sure that we can get these types with just these headers.
+uinttype_headers="#include <sys/types.h>
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
 #elif defined(HAVE_INTTYPES_H)
 #include <inttypes.h>
-#endif
-#include <sys/types.h>])
+#endif"
+
+LIBEVENT_MATCH_INTEGER_TYPE([int8_t],  [1], [signed], [$uinttype_headers])
+LIBEVENT_MATCH_INTEGER_TYPE([int16_t], [2], [signed], [$uinttype_headers])
+LIBEVENT_MATCH_INTEGER_TYPE([int32_t], [4], [signed], [$uinttype_headers])
+LIBEVENT_MATCH_INTEGER_TYPE([int64_t], [8], [signed], [$uinttype_headers])
+
+LIBEVENT_MATCH_INTEGER_TYPE([uint8_t],  [1], [unsigned], [$uinttype_headers])
+LIBEVENT_MATCH_INTEGER_TYPE([uint16_t], [2], [unsigned], [$uinttype_headers])
+LIBEVENT_MATCH_INTEGER_TYPE([uint32_t], [4], [unsigned], [$uinttype_headers])
+LIBEVENT_MATCH_INTEGER_TYPE([uint64_t], [8], [unsigned], [$uinttype_headers])
+
+AC_CHECK_SIZEOF([void *])
+LIBEVENT_MATCH_INTEGER_TYPE([uintptr_t], [$ac_cv_sizeof_void_p], [unsigned],
+                        [$uinttype_headers],
+                        [an unsigned integer type the same width as `void *'])
+LIBEVENT_MATCH_INTEGER_TYPE([intptr_t], [$ac_cv_sizeof_void_p], [signed],
+                        [$uinttype_headers],
+                        [a signed integer type the same width as `void *'])
+
+
+AC_CHECK_SIZEOF([size_t], [#include <stddef.h>])
+LIBEVENT_MATCH_INTEGER_TYPE([ssize_t], [$ac_cv_sizeof_size_t], [signed], ,
+                        [a signed integer type the same width as `size_t'])
+
+# If there is no official off_t, we want a 64-bit type.
+AC_CHECK_SIZEOF(off_t)
+if test $ac_cv_sizeof_off_t = 0; then
+  ev_sizeof_off_t=8
+else
+  ev_sizeof_off_t=$ac_cv_sizeof_off_t
+fi
+
+LIBEVENT_MATCH_INTEGER_TYPE([off_t], [$ev_sizeof_off_t], [signed], ,
+                        [a signed integer type suitable to represent offsets
+                         within (potentially very large) files])
 
 AC_CHECK_TYPES([fd_mask], , ,
 [#include <sys/types.h>
@@ -282,21 +324,6 @@ AC_CHECK_MEMBERS([struct sockaddr_in.sin_len,
 #endif
 #endif
 ])
-
-AC_CHECK_SIZEOF(long long)
-AC_CHECK_SIZEOF(long)
-AC_CHECK_SIZEOF(int)
-AC_CHECK_SIZEOF(short)
-AC_CHECK_SIZEOF(size_t)
-AC_CHECK_SIZEOF(void *)
-AC_CHECK_SIZEOF(off_t)
-
-if test $have_pthread = yes; then
-  AC_CHECK_SIZEOF(pthread_t, , [
-AC_INCLUDES_DEFAULT
-#include <pthread.h>
-])
-fi
 
 # Checks for library functions.
 AC_CHECK_FUNCS([ \

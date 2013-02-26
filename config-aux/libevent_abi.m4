@@ -6,51 +6,74 @@
 # notice and this notice are preserved.  This file is offered as-is,
 # without any warranty.
 
-# LIBEVENT_MATCH_INTEGER_TYPE(type, size, unsigned,
+# LIBEVENT_MATCH_INTEGER_TYPE(type, size, signedness,
 #                             headers = AC_INCLUDES_DEFAULT,
-#                             if-found, if-not-found)
+#                             [description])
 #
 #   Identify a built-in integer type compatible with |type|, which is
 #   expected to be defined in one of the |headers|.  If a match is
 #   found, define the macro TYPEOF_|TYPE| (that is, |type| converted
-#   to uppercase) to a suitable 'typedef' definition of |type|, and
-#   execute |if-found|.  Within |if-found|, the type chosen is available
-#   as ${chosentype}.  Otherwise, execute |if-not-found|.
+#   to uppercase) to a suitable 'typedef' definition of |type|.
 #
-#   If |size| is not empty, it must be a number giving the expected
-#   size of the type (in units of |char|).  Only built-in integer
-#   types which are known to be that size will be tested.
+#   |size| and |signedness| describe your expectations of the type:
+#   its size in units of `char`, and its signedness, respectively.
+#   |size| must be a positive integer or a shell construct that
+#   expands to a positive integer, and |signedness| must be one of the
+#   keywords "signed" or "unsigned", or a shell construct that expands
+#   to one of those keywords.  Only types which conform to those
+#   expectations will be tested.  Further, if a match is not found
+#   (for instance, if |type| was not declared as expected),
+#   TYPEOF_|TYPE| will be set to some type which meets those
+#   expectations.  If no such type is known, `configure` will fail.
 #
-#   If |unsigned| is "yes" or "unsigned", only unsigned types will be
-#   tested.  If it is "no" or "signed", only signed types will be
-#   tested.  Otherwise, both signed and unsigned types will be tested.
+#   The optional final argument |description| is used to describe the
+#   fallback type in config.h.in.  If you don't provide it, the
+#   default is "a |size|-byte |signedness| integer type"; if either
+#   |size| or |signedness| is a shell construct, this is probably not
+#   what you want.
 
 AC_DEFUN([LIBEVENT_MATCH_INTEGER_TYPE],
 [AC_REQUIRE([LIBEVENT__MATCH_TYPE_COMMON])dnl
 AS_LITERAL_IF(m4_translit([[$1]], [*], [p]), [],
                [m4_fatal([$0: requires literal argument 1])])dnl
-dnl Note: deliberate non-quotation of calls to m4_* here so they are
+dnl Note deliberate non-quotation of call to m4_default here, so it is
 dnl expanded before LIBEVENT_MATCH_INTEGER_TYPE is.
-LIBEVENT__MATCH_INTEGER_TYPE([$1],
-  m4_default([$2],[X]),
-  m4_case([$3], [yes], [u], [unsigned], [u],
-                 [no],  [s], [signed],   [s],
-                 [],    [X],
-     [m4_fatal([$0: invalid argument 3: $3])]),
-  m4_default([$4],[AC_INCLUDES_DEFAULT]),
-  [$5], [$6])])
+LIBEVENT__MATCH_INTEGER_TYPE([$1], [$2], [$3],
+                     m4_default_nblank([$4], [AC_INCLUDES_DEFAULT]),
+                     m4_default_nblank([$5], [a $2-byte $3 integer type]))dnl
+])
 
-AC_DEFUN([LIBEVENT__MATCH_INTEGER_TYPE],
-[AS_VAR_PUSHDEF([ev_cv_Type], [libevent_cv_typeof_$1])dnl
+AC_DEFUN([LIBEVENT__MATCH_INTEGER_TYPE], [dnl
+AS_VAR_PUSHDEF([ev_cv_Type], [libevent_cv_typeof_$1])dnl
+ev_size=$2
+ev_sign=$3
+AS_CASE([$ev_sign], [signed], [ev_sign=s],
+                    [unsigned], [ev_sign=u], [dnl
+  # This error message requires unusual quotation, since we wish to
+  # show both the literal and the evaluated forms of argument 3.
+  ev_errmsg=["invalid argument 3: '"'$3'"' = $ev_sign"]
+  AC_MSG_ERROR([$ev_errmsg])])
+AS_VAR_PUSHDEF([ev_Candidates], [libevent_mi_${ev_size}_${ev_sign}])
+AS_VAR_IF([ev_Candidates], [], [dnl
+  { AS_ECHO(["$as_me:${as_lineno-$LINENO}: libevent_mi_${ev_size}_${ev_sign} not set"])
+    AS_ECHO(["$as_me:${as_lineno-$LINENO}: see above for known integer types"])
+  } >&AS_MESSAGE_LOG_FD
+  AC_MSG_FAILURE([no known integer types are $2 bytes wide and $3])])
 AC_CACHE_CHECK([for a built-in type matching $1], [ev_cv_Type], [dnl
-  AS_VAR_SET([ev_cv_Type], ["not found"])
-  for type in $[]libevent_mi_[]$2[]_[]$3; do
-    # $adjtype is $type with underscores replaced by spaces.
+  ev_first_adjtype=
+  AS_VAR_COPY([ev_candidates], [ev_Candidates])
+  for ev_type in $ev_candidates; do
+    # $ev_adjtype is $ev_type with underscores replaced by spaces.
     # We have to take care not to mess up __int64 or __int64_t.
-    adjtype=`echo $type | sed 's/signed_/signed /g; s/long_long/long long/g'`
+    ev_adjtype=`echo $ev_type |
+      sed 's/signed_/signed /g; s/long_long/long long/g'`
+    if test "x$ev_first_adjtype" = x; then
+      ev_first_adjtype="$ev_adjtype"
+    fi
+    AS_ECHO(["$as_me:${as_lineno-$LINENO}: trying $ev_adjtype"]) >&AS_MESSAGE_LOG_FD
     AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 /* Define a typedef for the candidate first.  */
-typedef ${adjtype} candidate;
+typedef ${ev_adjtype} candidate;
 /* These headers should define $1.  */
 $4
 /* Provoke a compilation error if $1 and ${adjtype} are
@@ -58,15 +81,21 @@ $4
    T happens to be incomplete.  */
 extern candidate *var;
 $1 *var;
-]])], [AS_VAR_SET([ev_cv_Type], [${adjtype}])])
-  done])
-AS_VAR_IF([ev_cv_Type], ["not found"], [$6], [dnl
-  AS_VAR_COPY([chosentype], [ev_cv_Type])
-  dnl The AS_TR_CPP on the next line must be unquoted or autoheader will barf.
-  AC_DEFINE_UNQUOTED(AS_TR_CPP(TYPEOF_$1), [${chosentype}],
-    [Define to a built-in integer type compatible with $1.])
-$5])
+]])], [AS_VAR_SET([ev_cv_Type], [${ev_adjtype}])
+       break])
+  done
+  AS_VAR_SET_IF([ev_cv_Type], [],
+    [AS_VAR_SET([ev_cv_Type], ["$ev_first_adjtype (default)"])])
+])
+AS_VAR_COPY([ev_chosentype], [ev_cv_Type])
+AS_CASE([${ev_chosentype}], [*\ \(default\)],
+        [ev_chosentype=`echo "$ev_chosentype" | sed 's/ (default)//'`])
+dnl The AS_TR_CPP on the next line must be unquoted or autoheader will barf.
+AC_DEFINE_UNQUOTED(AS_TR_CPP(TYPEOF_$1), [$ev_chosentype],
+  [A built-in integer type compatible with `$1'.
+   If this system's headers do not define `$1', $5.])
 AS_VAR_POPDEF([ev_cv_Type])dnl
+AS_VAR_POPDEF([ev_Candidates])dnl
 ])
 
 # LIBEVENT__MATCH_TYPE_COMMON
@@ -82,10 +111,6 @@ dnl Possible alternative spellings of a 64-bit type.  AC_CHECK_SIZEOF
 dnl will set SIZEOF_whatever to zero if the type is invalid.
 AC_CHECK_SIZEOF([__int64_t])
 AC_CHECK_SIZEOF([__int64])
-dnl It is useful to be able to compare sizes to these.
-AC_CHECK_SIZEOF([void *])
-AC_CHECK_SIZEOF([size_t], [#include <stddef.h>])
-AC_CHECK_SIZEOF([ptrdiff_t], [#include <stddef.h>])
 
 # Rumor has it that some openbsd autoconf versions get the name of
 # this macro wrong.
@@ -97,31 +122,24 @@ if test x"$ac_cv_sizeof_void_p" = x &&
 fi
 
 # sizeof(char) is 1 by definition
-libevent_mi_1_X="char unsigned_char signed_char"
+# plain char is more likely to be signed than unsigned
 libevent_mi_1_s="char signed_char"
 libevent_mi_1_u="unsigned_char char"
-
-libevent_mi_X_X="${libevent_mi_1_X}"
-libevent_mi_X_s="${libevent_mi_1_s}"
-libevent_mi_X_u="${libevent_mi_1_u}"
 
 for type in short int long long_long; do
   AS_VAR_IF([ac_cv_sizeof_${type}], [0], , [
     AS_VAR_COPY([size], [ac_cv_sizeof_${type}])
-    AS_VAR_APPEND([libevent_mi_${size}_X], [" ${type}"])
     AS_VAR_APPEND([libevent_mi_${size}_s], [" ${type}"])
     AS_VAR_APPEND([libevent_mi_${size}_u], [" unsigned_${type}"])
-    AS_VAR_APPEND([libevent_mi_X_X], [" ${type} unsigned_${type}"])
-    AS_VAR_APPEND([libevent_mi_X_s], [" ${type}"])
-    AS_VAR_APPEND([libevent_mi_X_u], [" unsigned_${type}"])
   ])
 done
 # Log results of all the above.
-for size in 1 2 3 4 5 6 7 8 X; do
-  for sign in s u X; do
+AS_ECHO(["$as_me:${as_lineno-$LINENO}: known integer types are:"]) >&AS_MESSAGE_LOG_FD
+for size in 1 2 3 4 5 6 7 8; do
+  for sign in s u; do
     AS_VAR_SET_IF([libevent_mi_${size}_${sign}], [
       AS_VAR_COPY([temp], [libevent_mi_${size}_${sign}])
-      AS_ECHO(["$as_me: libevent_mi_${size}_${sign}=$temp"]) >&AS_MESSAGE_LOG_FD
+      AS_ECHO(["| libevent_mi_${size}_${sign}=$temp"]) >&AS_MESSAGE_LOG_FD
     ])
   done
 done

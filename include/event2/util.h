@@ -35,19 +35,8 @@
 
 #include <event2/event-config.h>
 
-/* Some openbsd autoconf versions get the name of this macro wrong. */
-#if defined(EVENT__SIZEOF_VOID__) && !defined(EVENT__SIZEOF_VOID_P)
-#define EVENT__SIZEOF_VOID_P EVENT__SIZEOF_VOID__
-#endif
-
-
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
-#endif
-#ifdef EVENT__HAVE_STDINT_H
-#include <stdint.h>
-#elif defined(EVENT__HAVE_INTTYPES_H)
-#include <inttypes.h>
 #endif
 #include <sys/types.h>
 #include <stddef.h>
@@ -74,13 +63,16 @@ extern "C" {
 #endif
 
 /**
- * @name Standard integer types.
+ * @name Fixed-width integer types used in the definition of
+ * libevent's public structures.
  *
- * Integer type definitions for types that are supposed to be defined in the
- * C99-specified stdint.h.  Shamefully, some platforms do not include
- * stdint.h, so we need to replace it.  (If you are on a platform like this,
- * your C headers are now over 10 years out of date.  You should bug them to
- * do something about this.)
+ * The names are taken from C99's <stdint.h>, but we do not use that
+ * header directly, because some platforms still do not provide it, or
+ * the related <inttypes.h>.  (If you are on a platform like this,
+ * your C headers are now over 10 years out of date.  You should bug
+ * them to do something about this.)  On platforms that do provide
+ * <stdint.h>, these typedefs are guaranteed to be compatible to
+ * (not just the same size as) the standard typedefs.
  *
  * We define:
  *
@@ -102,95 +94,21 @@ extern "C" {
  *
  * @{
  */
-#ifdef EVENT__HAVE_UINT64_T
-#define ev_uint64_t uint64_t
-#define ev_int64_t int64_t
-#elif defined(_WIN32)
-#define ev_uint64_t unsigned __int64
-#define ev_int64_t signed __int64
-#elif EVENT__SIZEOF_LONG_LONG == 8
-#define ev_uint64_t unsigned long long
-#define ev_int64_t long long
-#elif EVENT__SIZEOF_LONG == 8
-#define ev_uint64_t unsigned long
-#define ev_int64_t long
-#elif defined(EVENT_IN_DOXYGEN_)
-#define ev_uint64_t ...
-#define ev_int64_t ...
-#else
-#error "No way to define ev_uint64_t"
-#endif
 
-#ifdef EVENT__HAVE_UINT32_T
-#define ev_uint32_t uint32_t
-#define ev_int32_t int32_t
-#elif defined(_WIN32)
-#define ev_uint32_t unsigned int
-#define ev_int32_t signed int
-#elif EVENT__SIZEOF_LONG == 4
-#define ev_uint32_t unsigned long
-#define ev_int32_t signed long
-#elif EVENT__SIZEOF_INT == 4
-#define ev_uint32_t unsigned int
-#define ev_int32_t signed int
-#elif defined(EVENT_IN_DOXYGEN_)
-#define ev_uint32_t ...
-#define ev_int32_t ...
-#else
-#error "No way to define ev_uint32_t"
-#endif
+typedef EVENT__TYPEOF_INT8_T    ev_int8_t;
+typedef EVENT__TYPEOF_INT16_T   ev_int16_t;
+typedef EVENT__TYPEOF_INT32_T   ev_int32_t;
+typedef EVENT__TYPEOF_INT64_T   ev_int64_t;
 
-#ifdef EVENT__HAVE_UINT16_T
-#define ev_uint16_t uint16_t
-#define ev_int16_t  int16_t
-#elif defined(_WIN32)
-#define ev_uint16_t unsigned short
-#define ev_int16_t  signed short
-#elif EVENT__SIZEOF_INT == 2
-#define ev_uint16_t unsigned int
-#define ev_int16_t  signed int
-#elif EVENT__SIZEOF_SHORT == 2
-#define ev_uint16_t unsigned short
-#define ev_int16_t  signed short
-#elif defined(EVENT_IN_DOXYGEN_)
-#define ev_uint16_t ...
-#define ev_int16_t ...
-#else
-#error "No way to define ev_uint16_t"
-#endif
+typedef EVENT__TYPEOF_UINT8_T   ev_uint8_t;
+typedef EVENT__TYPEOF_UINT16_T  ev_uint16_t;
+typedef EVENT__TYPEOF_UINT32_T  ev_uint32_t;
+typedef EVENT__TYPEOF_UINT64_T  ev_uint64_t;
 
-#ifdef EVENT__HAVE_UINT8_T
-#define ev_uint8_t uint8_t
-#define ev_int8_t int8_t
-#elif defined(EVENT_IN_DOXYGEN_)
-#define ev_uint8_t ...
-#define ev_int8_t ...
-#else
-#define ev_uint8_t unsigned char
-#define ev_int8_t signed char
-#endif
+typedef EVENT__TYPEOF_INTPTR_T  ev_intptr_t;
+typedef EVENT__TYPEOF_UINTPTR_T ev_uintptr_t;
 
-#ifdef EVENT__HAVE_UINTPTR_T
-#define ev_uintptr_t uintptr_t
-#define ev_intptr_t intptr_t
-#elif EVENT__SIZEOF_VOID_P <= 4
-#define ev_uintptr_t ev_uint32_t
-#define ev_intptr_t ev_int32_t
-#elif EVENT__SIZEOF_VOID_P <= 8
-#define ev_uintptr_t ev_uint64_t
-#define ev_intptr_t ev_int64_t
-#elif defined(EVENT_IN_DOXYGEN_)
-#define ev_uintptr_t ...
-#define ev_intptr_t ...
-#else
-#error "No way to define ev_uintptr_t"
-#endif
-
-#ifdef EVENT__ssize_t
-#define ev_ssize_t EVENT__ssize_t
-#else
-#define ev_ssize_t ssize_t
-#endif
+typedef EVENT__TYPEOF_SSIZE_T   ev_ssize_t;
 
 /* Note that we define ev_off_t based on the compile-time size of off_t that
  * we used to build Libevent, and not based on the current size of off_t.
@@ -199,17 +117,9 @@ extern "C" {
  * at runtime, and so putting in any dependency on off_t would risk API
  * mismatch.
  */
-#ifdef _WIN32
-#define ev_off_t ev_int64_t
-#elif EVENT__SIZEOF_OFF_T == 8
-#define ev_off_t ev_int64_t
-#elif EVENT__SIZEOF_OFF_T == 4
-#define ev_off_t ev_int32_t
-#elif defined(EVENT_IN_DOXYGEN_)
-#define ev_off_t ...
-#else
-#define ev_off_t off_t
-#endif
+
+typedef EVENT__TYPEOF_OFF_T    ev_off_t;
+
 /**@}*/
 
 /* Limits for integer types.
@@ -337,7 +247,7 @@ int evutil_closesocket(evutil_socket_t sock);
 
 /** Do platform-specific operations, if possible, to make a tcp listener
  *  socket defer accept()s until there is data to read.
- *  
+ *
  *  Not all platforms support this.  You don't want to do this for every
  *  listener socket: only the ones that implement a protocol where the
  *  client transmits before the server needs to respond.
@@ -345,7 +255,7 @@ int evutil_closesocket(evutil_socket_t sock);
  *  @param sock The listening socket to to make deferred
  *  @return 0 on success (whether the operation is supported or not),
  *       -1 on failure
-*/ 
+*/
 int evutil_make_tcp_listen_socket_deferred(evutil_socket_t sock);
 
 #ifdef _WIN32

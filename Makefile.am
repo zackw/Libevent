@@ -269,19 +269,6 @@ noinst_HEADERS +=				\
 	time-internal.h				\
 	util-internal.h
 
-EVENT1_HDRS = \
-	include/evdns.h \
-	include/event.h \
-	include/evhttp.h \
-	include/evrpc.h \
-	include/evutil.h
-
-if INSTALL_LIBEVENT
-include_HEADERS = $(EVENT1_HDRS)
-else
-noinst_HEADERS += $(EVENT1_HDRS)
-endif
-
 AM_CPPFLAGS = -I$(srcdir)/include -I./include
 
 verify: check

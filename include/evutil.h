@@ -35,5 +35,6 @@
 */
 
 #include <event2/util.h>
+#include <event2/util_compat.h>
 
 #endif /* EVENT1_EVUTIL_H_INCLUDED_ */
