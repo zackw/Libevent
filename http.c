@@ -259,14 +259,14 @@ evhttp_htmlescape(const char *html)
 	for (i = 0; i < old_size; ++i) {
 		const char *replaced = NULL;
 		const size_t replace_size = html_replace(html[i], &replaced);
-		if (replace_size > EV_SIZE_MAX - new_size) {
+		if (replace_size > SIZE_MAX - new_size) {
 			event_warn("%s: html_replace overflow", __func__);
 			return (NULL);
 		}
 		new_size += replace_size;
 	}
 
-	if (new_size == EV_SIZE_MAX)
+	if (new_size == SIZE_MAX)
 		return (NULL);
 	p = escaped_html = mm_malloc(new_size + 1);
 	if (escaped_html == NULL) {
@@ -604,7 +604,7 @@ evhttp_connection_set_max_headers_size(struct evhttp_connection *evcon,
     ev_ssize_t new_max_headers_size)
 {
 	if (new_max_headers_size<0)
-		evcon->max_headers_size = EV_SIZE_MAX;
+		evcon->max_headers_size = SIZE_MAX;
 	else
 		evcon->max_headers_size = new_max_headers_size;
 }
@@ -865,7 +865,7 @@ evhttp_handle_chunked_read(struct evhttp_request *req, struct evbuffer *buf)
 			}
 
 			/* ntoread is signed int64, body_size is unsigned size_t, check for under/overflow conditions */
-			if ((ev_uint64_t)ntoread > EV_SIZE_MAX - req->body_size) {
+			if ((ev_uint64_t)ntoread > SIZE_MAX - req->body_size) {
 			    return DATA_CORRUPTED;
 			}
 
@@ -2186,8 +2186,8 @@ evhttp_connection_base_bufferevent_new(struct event_base *base, struct evdns_bas
 	evcon->fd = -1;
 	evcon->port = port;
 
-	evcon->max_headers_size = EV_SIZE_MAX;
-	evcon->max_body_size = EV_SIZE_MAX;
+	evcon->max_headers_size = SIZE_MAX;
+	evcon->max_body_size = SIZE_MAX;
 
 	evutil_timerclear(&evcon->timeout);
 	evcon->retry_cnt = evcon->retry_max = 0;
@@ -3358,8 +3358,8 @@ evhttp_new_object(void)
 	}
 
 	evutil_timerclear(&http->timeout);
-	evhttp_set_max_headers_size(http, EV_SIZE_MAX);
-	evhttp_set_max_body_size(http, EV_SIZE_MAX);
+	evhttp_set_max_headers_size(http, SIZE_MAX);
+	evhttp_set_max_body_size(http, SIZE_MAX);
 	evhttp_set_allowed_methods(http,
 	    EVHTTP_REQ_GET |
 	    EVHTTP_REQ_POST |
@@ -3552,7 +3552,7 @@ void
 evhttp_set_max_headers_size(struct evhttp* http, ev_ssize_t max_headers_size)
 {
 	if (max_headers_size < 0)
-		http->default_max_headers_size = EV_SIZE_MAX;
+		http->default_max_headers_size = SIZE_MAX;
 	else
 		http->default_max_headers_size = max_headers_size;
 }

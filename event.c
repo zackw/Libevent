@@ -3060,7 +3060,7 @@ event_mm_calloc_(size_t count, size_t size)
 	if (mm_malloc_fn_) {
 		size_t sz = count * size;
 		void *p = NULL;
-		if (count > EV_SIZE_MAX / size)
+		if (count > SIZE_MAX / size)
 			goto error;
 		p = mm_malloc_fn_(sz);
 		if (p)
@@ -3091,7 +3091,7 @@ event_mm_strdup_(const char *str)
 	if (mm_malloc_fn_) {
 		size_t ln = strlen(str);
 		void *p = NULL;
-		if (ln == EV_SIZE_MAX)
+		if (ln == SIZE_MAX)
 			goto error;
 		p = mm_malloc_fn_(ln+1);
 		if (p)

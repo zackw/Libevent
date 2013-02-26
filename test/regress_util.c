@@ -1192,7 +1192,7 @@ test_event_calloc(void *arg)
 	/* mm_calloc() should set errno = ENOMEM and return NULL
 	 * in case of potential overflow. */
 	errno = 0;
-	p = mm_calloc(EV_SIZE_MAX/2, EV_SIZE_MAX/2 + 8);
+	p = mm_calloc(SIZE_MAX/2, SIZE_MAX/2 + 8);
 	tt_assert(p == NULL);
 	tt_int_op(errno, ==, ENOMEM);
 
