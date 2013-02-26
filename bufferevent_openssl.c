@@ -331,7 +331,7 @@ static int be_openssl_ctrl(struct bufferevent *, enum bufferevent_ctrl_op, union
 
 const struct bufferevent_ops bufferevent_ops_openssl = {
 	"ssl",
-	evutil_offsetof(struct bufferevent_openssl, bev.bev),
+	offsetof(struct bufferevent_openssl, bev.bev),
 	be_openssl_enable,
 	be_openssl_disable,
 	be_openssl_destruct,
@@ -349,7 +349,7 @@ upcast(struct bufferevent *bev)
 	if (bev->be_ops != &bufferevent_ops_openssl)
 		return NULL;
 	bev_o = (void*)( ((char*)bev) -
-			 evutil_offsetof(struct bufferevent_openssl, bev.bev));
+			 offsetof(struct bufferevent_openssl, bev.bev));
 	EVUTIL_ASSERT(bev_o->bev.bev.be_ops == &bufferevent_ops_openssl);
 	return bev_o;
 }

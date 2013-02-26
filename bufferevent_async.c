@@ -85,7 +85,7 @@ struct bufferevent_async {
 
 const struct bufferevent_ops bufferevent_ops_async = {
 	"socket_async",
-	evutil_offsetof(struct bufferevent_async, bev.bev),
+	offsetof(struct bufferevent_async, bev.bev),
 	be_async_enable,
 	be_async_disable,
 	be_async_destruct,

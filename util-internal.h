@@ -240,7 +240,7 @@ void evutil_rtrim_lws_(char *);
     }
  */
 #define EVUTIL_UPCAST(ptr, type, field)				\
-	((type *)(((char*)(ptr)) - evutil_offsetof(type, field)))
+	((type *)(((char*)(ptr)) - offsetof(type, field)))
 
 /* As open(pathname, flags, mode), except that the file is always opened with
  * the close-on-exec flag set. (And the mode argument is mandatory.)

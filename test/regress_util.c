@@ -674,7 +674,7 @@ test_evutil_upcast(void *arg)
 	es1.b = "Hello";
 	es1.c = -99;
 
-	tt_int_op(evutil_offsetof(struct example_struct, b), ==, sizeof(char*));
+	tt_int_op(offsetof(struct example_struct, b), ==, sizeof(char*));
 
 	cp = &es1.b;
 	tt_ptr_op(EVUTIL_UPCAST(cp, struct example_struct, b), ==, &es1);

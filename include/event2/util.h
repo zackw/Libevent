@@ -35,15 +35,16 @@
 
 #include <event2/event-config.h>
 
+#include <stddef.h>
+#include <stdarg.h>
+
 #ifdef EVENT__HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
 #include <sys/types.h>
-#include <stddef.h>
 #ifdef _MSC_VER
 #include <BaseTsd.h>
 #endif
-#include <stdarg.h>
 #ifdef EVENT__HAVE_NETDB_H
 #include <netdb.h>
 #endif
@@ -87,10 +88,10 @@ extern "C" {
  *      <dd>unsigned/signed integers large enough
  *      to hold a pointer without loss of bits.</dd>
  *    <dt>ev_ssize_t</dt>
- *      <dd>A signed type of the same size as size_t</dd>
+ *      <dd>A signed type of the same size as size_t.</dd>
  *    <dt>ev_off_t</dt>
  *      <dd>A signed type typically used to represent offsets within a
- *      (potentially large) file</dd>
+ *      (potentially large) file.</dd>
  *
  * @{
  */
@@ -152,21 +153,18 @@ typedef EVENT__TYPEOF_OFF_T    ev_off_t;
 /** @} */
 
 /**
-   @name Limits for SIZE_T and SSIZE_T
+   @name Limits for ev_ssize_t.
 
    @{
 */
 #if EVENT__SIZEOF_SIZE_T == 8
-#define EV_SIZE_MAX EV_UINT64_MAX
 #define EV_SSIZE_MAX EV_INT64_MAX
 #elif EVENT__SIZEOF_SIZE_T == 4
-#define EV_SIZE_MAX EV_UINT32_MAX
 #define EV_SSIZE_MAX EV_INT32_MAX
 #elif defined(EVENT_IN_DOXYGEN_)
-#define EV_SIZE_MAX ...
 #define EV_SSIZE_MAX ...
 #else
-#error "No way to define SIZE_MAX"
+#error "Unexpected size of ssize_t (don't know how to set EV_SSIZE_MAX)"
 #endif
 
 #define EV_SSIZE_MIN ((-EV_SSIZE_MAX) - 1)
@@ -353,13 +351,6 @@ const char *evutil_socket_error_to_string(int errcode);
 #define evutil_timerisset(tvp) timerisset(tvp)
 #else
 #define	evutil_timerisset(tvp)	((tvp)->tv_sec || (tvp)->tv_usec)
-#endif
-
-/** Replacement for offsetof on platforms that don't define it. */
-#ifdef offsetof
-#define evutil_offsetof(type, field) offsetof(type, field)
-#else
-#define evutil_offsetof(type, field) ((off_t)(&((type *)0)->field))
 #endif
 
 /* big-int related functions */

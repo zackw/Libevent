@@ -382,7 +382,7 @@ evdns_get_global_base(void)
 /* server_request. */
 #define TO_SERVER_REQUEST(base_ptr)					\
 	((struct server_request*)					\
-	  (((char*)(base_ptr) - evutil_offsetof(struct server_request, base))))
+	  (((char*)(base_ptr) - offsetof(struct server_request, base))))
 
 #define REQ_HEAD(base, id) ((base)->req_heads[id % (base)->n_req_heads])
 

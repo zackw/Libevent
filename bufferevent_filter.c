@@ -92,7 +92,7 @@ struct bufferevent_filtered {
 
 const struct bufferevent_ops bufferevent_ops_filter = {
 	"filter",
-	evutil_offsetof(struct bufferevent_filtered, bev.bev),
+	offsetof(struct bufferevent_filtered, bev.bev),
 	be_filter_enable,
 	be_filter_disable,
 	be_filter_destruct,
@@ -110,7 +110,7 @@ upcast(struct bufferevent *bev)
 	if (bev->be_ops != &bufferevent_ops_filter)
 		return NULL;
 	bev_f = (void*)( ((char*)bev) -
-			 evutil_offsetof(struct bufferevent_filtered, bev.bev));
+			 offsetof(struct bufferevent_filtered, bev.bev));
 	EVUTIL_ASSERT(bev_f->bev.bev.be_ops == &bufferevent_ops_filter);
 	return bev_f;
 }

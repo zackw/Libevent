@@ -40,6 +40,19 @@
 #include <stdint.h>
 #elif defined(EVENT__HAVE_INTTYPES_H)
 #include <inttypes.h>
+#else
+#include <limits.h>
 #endif
+
+/* Backward compatibility for historical defensiveness against the
+   possibility that SIZE_MAX might not be available.  SIZE_MAX is
+   guaranteed to be defined by both stdint.h and inttypes.h, but
+   if we don't have either of those, limits.h will also do it.  */
+#define EV_SIZE_MAX SIZE_MAX
+
+/* Backward compatibility for historical defensiveness against the
+   possibility that offsetof might not be available.  event2/util.h
+   includes stddef.h, so we don't have to do it again.  */
+#define evutil_offsetof(type, field) offsetof(type, field)
 
 #endif
