@@ -106,7 +106,6 @@ struct bufferevent
 ;
 struct event_base;
 struct evbuffer;
-struct sockaddr;
 
 /**
    A read or write callback for a bufferevent.
@@ -193,7 +192,7 @@ struct bufferevent *bufferevent_socket_new(struct event_base *base, evutil_socke
    @param socklen The length of the address
    @return 0 on success, -1 on failure.
  */
-int bufferevent_socket_connect(struct bufferevent *, struct sockaddr *, int);
+int bufferevent_socket_connect(struct bufferevent *, const void *, ev_socklen_t);
 
 struct evdns_base;
 /**

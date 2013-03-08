@@ -72,11 +72,9 @@ regress_pick_a_port(void *arg)
 	struct basic_test_data *data = arg;
 	struct event_base *base = data->base;
 	struct evconnlistener *listener1 = NULL, *listener2 = NULL;
-	struct sockaddr_in sin;
+	struct sockaddr_in sin, sin1, sin2;
 	int count1 = 2, count2 = 1;
-	struct sockaddr_storage ss1, ss2;
-	struct sockaddr_in *sin1, *sin2;
-	ev_socklen_t slen1 = sizeof(ss1), slen2 = sizeof(ss2);
+	ev_socklen_t slen1 = sizeof(sin1), slen2 = sizeof(sin2);
 	unsigned int flags =
 	    LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE|LEV_OPT_CLOSE_ON_EXEC;
 
@@ -101,25 +99,23 @@ regress_pick_a_port(void *arg)
 	tt_int_op(evconnlistener_get_fd(listener1), >=, 0);
 	tt_int_op(evconnlistener_get_fd(listener2), >=, 0);
 	tt_assert(getsockname(evconnlistener_get_fd(listener1),
-		(struct sockaddr*)&ss1, &slen1) == 0);
+		(struct sockaddr*)&sin1, &slen1) == 0);
 	tt_assert(getsockname(evconnlistener_get_fd(listener2),
-		(struct sockaddr*)&ss2, &slen2) == 0);
-	tt_int_op(ss1.ss_family, ==, AF_INET);
-	tt_int_op(ss2.ss_family, ==, AF_INET);
+		(struct sockaddr*)&sin2, &slen2) == 0);
+	tt_int_op(sin1.sin_family, ==, AF_INET);
+	tt_int_op(sin2.sin_family, ==, AF_INET);
 
-	sin1 = (struct sockaddr_in*)&ss1;
-	sin2 = (struct sockaddr_in*)&ss2;
-	tt_int_op(ntohl(sin1->sin_addr.s_addr), ==, 0x7f000001);
-	tt_int_op(ntohl(sin2->sin_addr.s_addr), ==, 0x7f000001);
-	tt_int_op(sin1->sin_port, !=, sin2->sin_port);
+	tt_int_op(ntohl(sin1.sin_addr.s_addr), ==, 0x7f000001);
+	tt_int_op(ntohl(sin2.sin_addr.s_addr), ==, 0x7f000001);
+	tt_int_op(sin1.sin_port, !=, sin2.sin_port);
 
 	tt_ptr_op(evconnlistener_get_base(listener1), ==, base);
 	tt_ptr_op(evconnlistener_get_base(listener2), ==, base);
 
 	fd1 = fd2 = fd3 = -1;
-	evutil_socket_connect_(&fd1, (struct sockaddr*)&ss1, slen1);
-	evutil_socket_connect_(&fd2, (struct sockaddr*)&ss1, slen1);
-	evutil_socket_connect_(&fd3, (struct sockaddr*)&ss2, slen2);
+	evutil_socket_connect_(&fd1, &sin1, slen1);
+	evutil_socket_connect_(&fd2, &sin1, slen1);
+	evutil_socket_connect_(&fd3, &sin2, slen2);
 
 #ifdef _WIN32
 	Sleep(100); /* XXXX this is a stupid stopgap. */

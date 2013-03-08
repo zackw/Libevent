@@ -404,8 +404,7 @@ regress_bufferevent_openssl_connect(void *arg)
 
 	struct evconnlistener *listener;
 	struct bufferevent *bev;
-	struct sockaddr_in sin;
-	struct sockaddr_storage ss;
+	struct sockaddr_in sin, sin2;
 	ev_socklen_t slen;
 
 	init_ssl();
@@ -413,9 +412,6 @@ regress_bufferevent_openssl_connect(void *arg)
 	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = htonl(0x7f000001);
-
-	memset(&ss, 0, sizeof(ss));
-	slen = sizeof(ss);
 
 	listener = evconnlistener_new_bind(base, acceptcb, data,
 	    LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE,
@@ -433,14 +429,15 @@ regress_bufferevent_openssl_connect(void *arg)
 	bufferevent_setcb(bev, respond_to_number, NULL, eventcb,
 	    (void*)"client");
 
+	memset(&sin2, 0, sizeof(sin2));
+	slen = sizeof(sin2);
 	tt_assert(getsockname(evconnlistener_get_fd(listener),
-		(struct sockaddr*)&ss, &slen) == 0);
+			      (struct sockaddr*)&sin2, &slen) == 0);
 	tt_assert(slen == sizeof(struct sockaddr_in));
-	tt_int_op(((struct sockaddr*)&ss)->sa_family, ==, AF_INET);
-	tt_int_op(((struct sockaddr*)&ss)->sa_family, ==, AF_INET);
+	tt_int_op(sin2.sin_family, ==, AF_INET);
+	tt_int_op(sin2.sin_family, ==, AF_INET);
 
-	tt_assert(0 ==
-	    bufferevent_socket_connect(bev, (struct sockaddr*)&ss, slen));
+	tt_assert(0 == bufferevent_socket_connect(bev, &sin2, slen));
 	evbuffer_add_printf(bufferevent_get_output(bev), "1\n");
 	bufferevent_enable(bev, EV_READ|EV_WRITE);
 

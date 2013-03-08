@@ -33,9 +33,9 @@
 #include <openssl/rand.h>
 
 static struct event_base *base;
-static struct sockaddr_storage listen_on_addr;
-static struct sockaddr_storage connect_to_addr;
-static int connect_to_addrlen;
+static ev_sockaddr_store listen_on_addr;
+static ev_sockaddr_store connect_to_addr;
+static ev_socklen_t connect_to_addrlen;
 static int use_wrapper = 1;
 
 static SSL_CTX *ssl_ctx = NULL;
@@ -174,7 +174,7 @@ accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
 	assert(b_in && b_out);
 
 	if (bufferevent_socket_connect(b_out,
-		(struct sockaddr*)&connect_to_addr, connect_to_addrlen)<0) {
+	        connect_to_addr, connect_to_addrlen)<0) {
 		perror("bufferevent_socket_connect");
 		bufferevent_free(b_out);
 		bufferevent_free(b_in);
@@ -206,7 +206,7 @@ int
 main(int argc, char **argv)
 {
 	int i;
-	int socklen;
+	ev_socklen_t socklen;
 
 	int use_ssl = 0;
 	struct evconnlistener *listener;
@@ -228,12 +228,11 @@ main(int argc, char **argv)
 	if (i+2 != argc)
 		syntax();
 
-	memset(&listen_on_addr, 0, sizeof(listen_on_addr));
+	memset(listen_on_addr, 0, sizeof(listen_on_addr));
 	socklen = sizeof(listen_on_addr);
-	if (evutil_parse_sockaddr_port(argv[i],
-		(struct sockaddr*)&listen_on_addr, &socklen)<0) {
+	if (evutil_parse_sockaddr_port(argv[i], listen_on_addr, &socklen)<0) {
 		int p = atoi(argv[i]);
-		struct sockaddr_in *sin = (struct sockaddr_in*)&listen_on_addr;
+		struct sockaddr_in *sin = (struct sockaddr_in*)listen_on_addr;
 		if (p < 1 || p > 65535)
 			syntax();
 		sin->sin_port = htons(p);
@@ -242,10 +241,10 @@ main(int argc, char **argv)
 		socklen = sizeof(struct sockaddr_in);
 	}
 
-	memset(&connect_to_addr, 0, sizeof(connect_to_addr));
+	memset(connect_to_addr, 0, sizeof(connect_to_addr));
 	connect_to_addrlen = sizeof(connect_to_addr);
-	if (evutil_parse_sockaddr_port(argv[i+1],
-		(struct sockaddr*)&connect_to_addr, &connect_to_addrlen)<0)
+	if (evutil_parse_sockaddr_port(argv[i+1], connect_to_addr,
+                                       &connect_to_addrlen)<0)
 		syntax();
 
 	base = event_base_new();
@@ -270,7 +269,7 @@ main(int argc, char **argv)
 
 	listener = evconnlistener_new_bind(base, accept_cb, NULL,
 	    LEV_OPT_CLOSE_ON_FREE|LEV_OPT_CLOSE_ON_EXEC|LEV_OPT_REUSEABLE,
-	    -1, (struct sockaddr*)&listen_on_addr, socklen);
+	    -1, listen_on_addr, socklen);
 
 	event_base_dispatch(base);
 

@@ -375,32 +375,35 @@ main(int argc, char **argv)
 
 	{
 		/* Extract and display the address we're listening on. */
-		struct sockaddr_storage ss;
-		evutil_socket_t fd;
+		ev_sockaddr_store ss;
 		ev_socklen_t socklen = sizeof(ss);
+		struct sockaddr *sa = (struct sockaddr *)ss;
+		evutil_socket_t fd;
 		char addrbuf[128];
 		void *inaddr;
 		const char *addr;
 		int got_port = -1;
 		fd = evhttp_bound_socket_get_fd(handle);
-		memset(&ss, 0, sizeof(ss));
-		if (getsockname(fd, (struct sockaddr *)&ss, &socklen)) {
+		memset(ss, 0, socklen);
+		if (getsockname(fd, sa, &socklen)) {
 			perror("getsockname() failed");
 			return 1;
 		}
-		if (ss.ss_family == AF_INET) {
-			got_port = ntohs(((struct sockaddr_in*)&ss)->sin_port);
-			inaddr = &((struct sockaddr_in*)&ss)->sin_addr;
-		} else if (ss.ss_family == AF_INET6) {
-			got_port = ntohs(((struct sockaddr_in6*)&ss)->sin6_port);
-			inaddr = &((struct sockaddr_in6*)&ss)->sin6_addr;
+		if (sa->sa_family == AF_INET) {
+			struct sockaddr_in *sin = (struct sockaddr_in *)ss;
+			got_port = ntohs(sin->sin_port);
+			inaddr = &sin->sin_addr;
+		} else if (sa->sa_family == AF_INET6) {
+			struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)ss;
+			got_port = ntohs(sin6->sin6_port);
+			inaddr = &sin6->sin6_addr;
 		} else {
 			fprintf(stderr, "Weird address family %d\n",
-			    ss.ss_family);
+				sa->sa_family);
 			return 1;
 		}
-		addr = evutil_inet_ntop(ss.ss_family, inaddr, addrbuf,
-		    sizeof(addrbuf));
+		addr = evutil_inet_ntop(sa->sa_family, inaddr, addrbuf,
+					sizeof(addrbuf));
 		if (addr) {
 			printf("Listening on %s:%d\n", addr, got_port);
 			evutil_snprintf(uri_root, sizeof(uri_root),

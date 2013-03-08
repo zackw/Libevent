@@ -76,14 +76,14 @@ evutil_socket_t dns_sock = -1;
 int
 regress_get_socket_port(evutil_socket_t fd)
 {
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	ev_socklen_t socklen = sizeof(ss);
-	if (getsockname(fd, (struct sockaddr*)&ss, &socklen) != 0)
+	if (getsockname(fd, (struct sockaddr *)ss, &socklen) != 0)
 		return -1;
-	if (ss.ss_family == AF_INET)
-		return ntohs( ((struct sockaddr_in*)&ss)->sin_port);
-	else if (ss.ss_family == AF_INET6)
-		return ntohs( ((struct sockaddr_in6*)&ss)->sin6_port);
+	if (((struct sockaddr *)ss)->sa_family == AF_INET)
+		return ntohs(((struct sockaddr_in *)ss)->sin_port);
+	else if (((struct sockaddr *)ss)->sa_family == AF_INET6)
+		return ntohs(((struct sockaddr_in6 *)ss)->sin6_port);
 	else
 		return -1;
 }

@@ -267,13 +267,7 @@ AC_CHECK_TYPES([fd_mask], , ,
 #include <sys/select.h>
 #endif])
 
-AC_CHECK_TYPES([sa_family_t,
-                socklen_t,
-                struct addrinfo,
-                struct in6_addr,
-                struct sockaddr_in6,
-                struct sockaddr_storage], , ,
-[#include <sys/types.h>
+ev_socket_headers="#include <sys/types.h>
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -296,34 +290,54 @@ AC_CHECK_TYPES([sa_family_t,
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #endif
-#endif
-])
+#endif"
+
+AC_CHECK_TYPES([sa_family_t,
+                socklen_t,
+                struct addrinfo,
+                struct in6_addr,
+                struct sockaddr_in6,
+                struct sockaddr_storage], , ,
+               [$ev_socket_headers])
 AC_CHECK_MEMBERS([struct sockaddr_in.sin_len,
-                  struct sockaddr_in6.sin6_len,
-                  struct sockaddr_storage.ss_family,
-                  struct sockaddr_storage.__ss_family], , ,
-[#include <sys/types.h>
-#ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h>
-#endif
-#ifdef HAVE_NETINET_IN6_H
-#include <netinet/in6.h>
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-#ifdef _WIN32
-#define WIN32_WINNT 0x400
-#define _WIN32_WINNT 0x400
-#define WIN32_LEAN_AND_MEAN
-#if defined(_MSC_VER) && (_MSC_VER < 1300)
-#include <winsock.h>
-#else
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
-#endif
+                  struct sockaddr_in6.sin6_len], , ,
+                 [$ev_socket_headers])
+
+ev_sockaddr_space_test="$ev_socket_headers
+#define EV_MAX(a,b) ((a)>(b)?(a):(b))
+#define EV_S_SA   sizeof(struct sockaddr)
+#define EV_S_SIN  sizeof(struct sockaddr_in)
+#define EV_S_SIN6 sizeof(struct sockaddr_in6)
+#define EV_S_SS   sizeof(struct sockaddr_storage)
+#define EV_S      EV_MAX(EV_S_SA, EV_MAX(EV_S_SIN, "
+ev_sockaddr_space_cparens="))"
+
+AS_VAR_IF([ac_cv_type_struct_sockaddr_in6], [yes], [dnl
+  AS_VAR_APPEND([ev_sockaddr_space_test],
+                ["EV_MAX(EV_S_SIN6, "])
+  AS_VAR_APPEND([ev_sockaddr_space_cparens], [")"])
 ])
+AS_VAR_IF([ac_cv_type_struct_sockaddr_storage], [yes], [dnl
+  AS_VAR_APPEND([ev_sockaddr_space_test],
+                ["EV_MAX(EV_S_SS, "])
+  AS_VAR_APPEND([ev_sockaddr_space_cparens], [")"])
+])
+AS_VAR_APPEND([ev_sockaddr_space_test], ["128$ev_sockaddr_space_cparens"])
+
+AC_CACHE_CHECK([how many bytes to use for sockaddr storage],
+               [libevent_cv_space_sockaddr_storage], [dnl
+  AC_COMPUTE_INT([libevent_cv_space_sockaddr_storage],
+                 [EV_S],
+                 [$ev_sockaddr_space_test], [dnl
+    AC_MSG_FAILURE([failed to compute required space for sockaddr storage])
+])])
+AC_DEFINE_UNQUOTED([SOCKADDR_SPACE], [${libevent_cv_space_sockaddr_storage}U],
+  [Define as the size (in bytes) of a block of memory that can hold
+   socket addresses of arbitrary type.  This must be at least as large
+   as the larger of `struct sockaddr_in' and `struct sockaddr_in6', and
+   should be as large as `struct sockaddr_storage', if you have that.
+   It is not, however, necessary for this to be big enough for AF_UNIX
+   addresses.])
 
 # Checks for library functions.
 AC_CHECK_FUNCS([ \

@@ -606,7 +606,6 @@ bufferevent_async_connect_(struct bufferevent *bev, evutil_socket_t fd,
 {
 	BOOL rc;
 	struct bufferevent_async *bev_async = upcast(bev);
-	struct sockaddr_storage ss;
 	const struct win32_extension_fns *ext =
 	    event_get_win32_extension_fns_();
 
@@ -616,22 +615,26 @@ bufferevent_async_connect_(struct bufferevent *bev, evutil_socket_t fd,
 	 * with bind() before using, otherwise it will fail. We attempt
 	 * to issue a bind() here, taking into account that the error
 	 * code is set to WSAEINVAL when the socket is already bound. */
-	memset(&ss, 0, sizeof(ss));
 	if (sa->sa_family == AF_INET) {
-		struct sockaddr_in *sin = (struct sockaddr_in *)&ss;
-		sin->sin_family = AF_INET;
-		sin->sin_addr.s_addr = INADDR_ANY;
+		struct sockaddr_in sin;
+		memset(&sin, 0, sizeof(sin));
+		sin.sin_family = AF_INET;
+		sin.sin_addr.s_addr = INADDR_ANY;
+		if (bind(fd, (struct sockaddr *)&sin, sizeof(sin)) < 0 &&
+		    WSAGetLastError() != WSAEINVAL)
+			return -1;
 	} else if (sa->sa_family == AF_INET6) {
-		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&ss;
-		sin6->sin6_family = AF_INET6;
-		sin6->sin6_addr = in6addr_any;
+		struct sockaddr_in6 sin6;
+		memset(&sin6, 0, sizeof(sin6));
+		sin6.sin6_family = AF_INET6;
+		sin6.sin6_addr = in6addr_any;
+		if (bind(fd, (struct sockaddr *)&sin6, sizeof(sin6)) < 0 &&
+		    WSAGetLastError() != WSAEINVAL)
+			return -1;
 	} else {
 		/* Well, the user will have to bind() */
 		return -1;
 	}
-	if (bind(fd, (struct sockaddr *)&ss, sizeof(ss)) < 0 &&
-	    WSAGetLastError() != WSAEINVAL)
-		return -1;
 
 	event_base_add_virtual_(bev->ev_base);
 	bufferevent_incref_(bev);

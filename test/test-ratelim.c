@@ -253,7 +253,7 @@ test_ratelimiting(void)
 	struct sockaddr_in sin;
 	struct evconnlistener *listener;
 
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	ev_socklen_t slen;
 
 	int i;
@@ -302,8 +302,8 @@ test_ratelimiting(void)
 	}
 
 	slen = sizeof(ss);
-	if (getsockname(evconnlistener_get_fd(listener), (struct sockaddr *)&ss,
-		&slen) < 0) {
+	if (getsockname(evconnlistener_get_fd(listener),
+			(struct sockaddr *)ss, &slen) < 0) {
 		perror("getsockname");
 		return 1;
 	}
@@ -350,8 +350,7 @@ test_ratelimiting(void)
 		bufferevent_setcb(bevs[i], discard_readcb, loud_writecb,
 		    write_on_connectedcb, &states[i]);
 		bufferevent_enable(bevs[i], EV_READ|EV_WRITE);
-		bufferevent_socket_connect(bevs[i], (struct sockaddr *)&ss,
-		    slen);
+		bufferevent_socket_connect(bevs[i], ss, slen);
 	}
 
 	tv.tv_sec = cfg_duration - 1;

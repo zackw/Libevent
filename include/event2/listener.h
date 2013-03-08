@@ -45,6 +45,10 @@ struct event_base;
    @param addr The source address of the connection
    @param socklen The length of addr
    @param user_arg the pointer passed to evconnlistener_new()
+
+   For compatibility with existing code, the |addr| argument has type
+   'struct sockaddr *' argument instead of 'const void *', even though
+   libevent otherwise prefers to pass sockaddrs around as 'const void *'.
  */
 typedef void (*evconnlistener_cb)(struct evconnlistener *, evutil_socket_t, struct sockaddr *, int socklen, void *);
 
@@ -125,7 +129,7 @@ struct evconnlistener *evconnlistener_new(struct event_base *base,
  */
 struct evconnlistener *evconnlistener_new_bind(struct event_base *base,
     evconnlistener_cb cb, void *ptr, unsigned flags, int backlog,
-    const struct sockaddr *sa, int socklen);
+    const void *sa, ev_socklen_t socklen);
 /**
    Disable and deallocate an evconnlistener.
  */

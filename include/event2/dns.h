@@ -315,7 +315,7 @@ int evdns_base_nameserver_ip_add(struct evdns_base *base,
  **/
 int
 evdns_base_nameserver_sockaddr_add(struct evdns_base *base,
-    const struct sockaddr *sa, ev_socklen_t len, unsigned flags);
+    const void *sa, ev_socklen_t len, unsigned flags);
 
 struct evdns_request;
 
@@ -596,11 +596,12 @@ int evdns_server_request_respond(struct evdns_server_request *req, int err);
    Free a DNS request without sending back a reply.
 */
 int evdns_server_request_drop(struct evdns_server_request *req);
-struct sockaddr;
+
 /**
     Get the address that made a DNS request.
  */
-int evdns_server_request_get_requesting_addr(struct evdns_server_request *req, struct sockaddr *sa, int addr_len);
+int evdns_server_request_get_requesting_addr(struct evdns_server_request *req,
+                                             void *sa, ev_socklen_t addr_len);
 
 /** Callback for evdns_getaddrinfo. */
 typedef void (*evdns_getaddrinfo_cb)(int result, struct evutil_addrinfo *res, void *arg);

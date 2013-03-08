@@ -488,7 +488,7 @@ test_bufferevent_connect(void *arg)
 	struct evconnlistener *lev=NULL;
 	struct bufferevent *bev1=NULL, *bev2=NULL;
 	struct sockaddr_in localhost;
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	struct sockaddr *sa;
 	ev_socklen_t slen;
 
@@ -524,7 +524,7 @@ test_bufferevent_connect(void *arg)
 	    16, sa, sizeof(localhost));
 	tt_assert(lev);
 
-	sa = (struct sockaddr *)&ss;
+	sa = (struct sockaddr *)ss;
 	slen = sizeof(ss);
 	if (regress_get_listener_addr(lev, sa, &slen) < 0) {
 		tt_abort_perror("getsockname");

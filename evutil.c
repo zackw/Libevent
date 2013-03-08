@@ -494,9 +494,10 @@ evutil_socket_geterror(evutil_socket_t sock)
 /* XXX we should use an enum here. */
 /* 2 for connection refused, 1 for connected, 0 for not yet, -1 for error. */
 int
-evutil_socket_connect_(evutil_socket_t *fd_ptr, struct sockaddr *sa, int socklen)
+evutil_socket_connect_(evutil_socket_t *fd_ptr, const void *addr, ev_socklen_t alen)
 {
 	int made_fd = 0;
+	const struct sockaddr *sa = addr;
 
 	if (*fd_ptr < 0) {
 		if ((*fd_ptr = socket(sa->sa_family, SOCK_STREAM, 0)) < 0)
@@ -507,7 +508,7 @@ evutil_socket_connect_(evutil_socket_t *fd_ptr, struct sockaddr *sa, int socklen
 		}
 	}
 
-	if (connect(*fd_ptr, sa, socklen) < 0) {
+	if (connect(*fd_ptr, addr, alen) < 0) {
 		int e = evutil_socket_geterror(*fd_ptr);
 		if (EVUTIL_ERR_CONNECT_RETRIABLE(e))
 			return 0;
@@ -768,8 +769,8 @@ evutil_check_interfaces(int force_recheck)
  * allocate both a TCP and a UDP addrinfo.
  */
 struct evutil_addrinfo *
-evutil_new_addrinfo_(struct sockaddr *sa, ev_socklen_t socklen,
-    const struct evutil_addrinfo *hints)
+evutil_new_addrinfo_(const void *addr, ev_socklen_t alen,
+		     const struct evutil_addrinfo *hints)
 {
 	struct evutil_addrinfo *res;
 	EVUTIL_ASSERT(hints);
@@ -780,11 +781,11 @@ evutil_new_addrinfo_(struct sockaddr *sa, ev_socklen_t socklen,
 		struct evutil_addrinfo tmp;
 		memcpy(&tmp, hints, sizeof(tmp));
 		tmp.ai_socktype = SOCK_STREAM; tmp.ai_protocol = IPPROTO_TCP;
-		r1 = evutil_new_addrinfo_(sa, socklen, &tmp);
+		r1 = evutil_new_addrinfo_(addr, alen, &tmp);
 		if (!r1)
 			return NULL;
 		tmp.ai_socktype = SOCK_DGRAM; tmp.ai_protocol = IPPROTO_UDP;
-		r2 = evutil_new_addrinfo_(sa, socklen, &tmp);
+		r2 = evutil_new_addrinfo_(addr, alen, &tmp);
 		if (!r2) {
 			evutil_freeaddrinfo(r1);
 			return NULL;
@@ -794,14 +795,14 @@ evutil_new_addrinfo_(struct sockaddr *sa, ev_socklen_t socklen,
 	}
 
 	/* We're going to allocate extra space to hold the sockaddr. */
-	res = mm_calloc(1,sizeof(struct evutil_addrinfo)+socklen);
+	res = mm_calloc(1,sizeof(struct evutil_addrinfo)+alen);
 	if (!res)
 		return NULL;
 	res->ai_addr = (struct sockaddr*)
 	    (((char*)res) + sizeof(struct evutil_addrinfo));
-	memcpy(res->ai_addr, sa, socklen);
-	res->ai_addrlen = socklen;
-	res->ai_family = sa->sa_family; /* Same or not? XXX */
+	memcpy(res->ai_addr, addr, alen);
+	res->ai_addrlen = alen;
+	res->ai_family = res->ai_addr->sa_family; /* Same or not? XXX */
 	res->ai_flags = EVUTIL_AI_LIBEVENT_ALLOCATED;
 	res->ai_socktype = hints->ai_socktype;
 	res->ai_protocol = hints->ai_protocol;
@@ -1915,7 +1916,7 @@ evutil_inet_pton(int af, const char *src, void *dst)
 }
 
 int
-evutil_parse_sockaddr_port(const char *ip_as_string, struct sockaddr *out, int *outlen)
+evutil_parse_sockaddr_port(const char *ip_as_string, void *out, ev_socklen_t *outlen)
 {
 	int port;
 	char buf[128];
@@ -2018,13 +2019,14 @@ evutil_parse_sockaddr_port(const char *ip_as_string, struct sockaddr *out, int *
 }
 
 const char *
-evutil_format_sockaddr_port_(const struct sockaddr *sa, char *out, size_t outlen)
+evutil_format_sockaddr_port_(const void *addr, char *out, size_t outlen)
 {
 	char b[128];
 	const char *res=NULL;
 	int port;
+	const struct sockaddr *sa = addr;
 	if (sa->sa_family == AF_INET) {
-		const struct sockaddr_in *sin = (const struct sockaddr_in*)sa;
+		const struct sockaddr_in *sin = (const struct sockaddr_in*)addr;
 		res = evutil_inet_ntop(AF_INET, &sin->sin_addr,b,sizeof(b));
 		port = ntohs(sin->sin_port);
 		if (res) {
@@ -2032,7 +2034,7 @@ evutil_format_sockaddr_port_(const struct sockaddr *sa, char *out, size_t outlen
 			return out;
 		}
 	} else if (sa->sa_family == AF_INET6) {
-		const struct sockaddr_in6 *sin6 = (const struct sockaddr_in6*)sa;
+		const struct sockaddr_in6 *sin6 = (const struct sockaddr_in6*)addr;
 		res = evutil_inet_ntop(AF_INET6, &sin6->sin6_addr,b,sizeof(b));
 		port = ntohs(sin6->sin6_port);
 		if (res) {
@@ -2047,17 +2049,18 @@ evutil_format_sockaddr_port_(const struct sockaddr *sa, char *out, size_t outlen
 }
 
 int
-evutil_sockaddr_cmp(const struct sockaddr *sa1, const struct sockaddr *sa2,
-    int include_port)
+evutil_sockaddr_cmp(const void *s1, const void *s2, int include_port)
 {
+	const struct sockaddr *sa1 = (const struct sockaddr *)s1;
+	const struct sockaddr *sa2 = (const struct sockaddr *)s2;
 	int r;
 	if (0 != (r = (sa1->sa_family - sa2->sa_family)))
 		return r;
 
 	if (sa1->sa_family == AF_INET) {
 		const struct sockaddr_in *sin1, *sin2;
-		sin1 = (const struct sockaddr_in *)sa1;
-		sin2 = (const struct sockaddr_in *)sa2;
+		sin1 = (const struct sockaddr_in *)s1;
+		sin2 = (const struct sockaddr_in *)s2;
 		if (sin1->sin_addr.s_addr < sin2->sin_addr.s_addr)
 			return -1;
 		else if (sin1->sin_addr.s_addr > sin2->sin_addr.s_addr)
@@ -2071,8 +2074,8 @@ evutil_sockaddr_cmp(const struct sockaddr *sa1, const struct sockaddr *sa2,
 #ifdef AF_INET6
 	else if (sa1->sa_family == AF_INET6) {
 		const struct sockaddr_in6 *sin1, *sin2;
-		sin1 = (const struct sockaddr_in6 *)sa1;
-		sin2 = (const struct sockaddr_in6 *)sa2;
+		sin1 = (const struct sockaddr_in6 *)s1;
+		sin2 = (const struct sockaddr_in6 *)s2;
 		if ((r = memcmp(sin1->sin6_addr.s6_addr, sin2->sin6_addr.s6_addr, 16)))
 			return r;
 		else if (include_port &&
@@ -2292,14 +2295,15 @@ evutil_weakrand_range_(struct evutil_weakrand_state *state, ev_int32_t top)
 }
 
 int
-evutil_sockaddr_is_loopback_(const struct sockaddr *addr)
+evutil_sockaddr_is_loopback_(const void *addr)
 {
 	static const char LOOPBACK_S6[16] =
 	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1";
-	if (addr->sa_family == AF_INET) {
+	const struct sockaddr *sa = addr;
+	if (sa->sa_family == AF_INET) {
 		struct sockaddr_in *sin = (struct sockaddr_in *)addr;
 		return (ntohl(sin->sin_addr.s_addr) & 0xff000000) == 0x7f000000;
-	} else if (addr->sa_family == AF_INET6) {
+	} else if (sa->sa_family == AF_INET6) {
 		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)addr;
 		return !memcmp(sin6->sin6_addr.s6_addr, LOOPBACK_S6, 16);
 	}
@@ -2393,8 +2397,8 @@ evutil_socket_(int domain, int type, int protocol)
  * possible.
  */
 evutil_socket_t
-evutil_accept4_(evutil_socket_t sockfd, struct sockaddr *addr,
-    ev_socklen_t *addrlen, int flags)
+evutil_accept4_(evutil_socket_t sockfd, void *addr,
+		ev_socklen_t *addrlen, int flags)
 {
 	evutil_socket_t result;
 #if defined(HAVE_ACCEPT4) && defined(SOCK_CLOEXEC) && defined(SOCK_NONBLOCK)

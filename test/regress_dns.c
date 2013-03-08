@@ -368,7 +368,7 @@ dns_server(void)
 {
 	evutil_socket_t sock=-1;
 	struct sockaddr_in my_addr;
-	struct sockaddr_storage ss;
+        ev_sockaddr_store ss;
 	ev_socklen_t slen;
 	struct evdns_server_port *port=NULL;
 	struct in_addr resolve_addr;
@@ -396,7 +396,7 @@ dns_server(void)
 		tt_abort_perror("bind");
 	}
 	slen = sizeof(ss);
-	if (getsockname(sock, (struct sockaddr*)&ss, &slen) < 0) {
+	if (getsockname(sock, (struct sockaddr*)ss, &slen) < 0) {
 		tt_abort_perror("getsockname");
 	}
 
@@ -404,7 +404,7 @@ dns_server(void)
 
 	/* Add ourself as the only nameserver, and make sure we really are
 	 * the only nameserver. */
-	evdns_base_nameserver_sockaddr_add(base, (struct sockaddr*)&ss, slen, 0);
+	evdns_base_nameserver_sockaddr_add(base, ss, slen, 0);
 	tt_int_op(evdns_base_count_nameservers(base), ==, 1);
 
 	/* Send some queries. */
@@ -1783,7 +1783,7 @@ test_getaddrinfo_async_cancel_stress(void *ptr)
 	struct evdns_server_port *server = NULL;
 	evutil_socket_t fd = -1;
 	struct sockaddr_in sin;
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	ev_socklen_t slen;
 	int i;
 
@@ -1804,13 +1804,12 @@ test_getaddrinfo_async_cancel_stress(void *ptr)
 	server = evdns_add_server_port_with_base(base, fd, 0, gaic_server_cb,
 	    base);
 
-	memset(&ss, 0, sizeof(ss));
+	memset(ss, 0, sizeof(ss));
 	slen = sizeof(ss);
-	if (getsockname(fd, (struct sockaddr*)&ss, &slen)<0) {
+	if (getsockname(fd, (struct sockaddr*)ss, &slen)<0) {
 		tt_abort_perror("getsockname");
 	}
-	evdns_base_nameserver_sockaddr_add(dns_base,
-	    (struct sockaddr*)&ss, slen, 0);
+	evdns_base_nameserver_sockaddr_add(dns_base, ss, slen, 0);
 
 	for (i = 0; i < 1000; ++i) {
 		gaic_launch(base, dns_base);

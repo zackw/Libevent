@@ -178,13 +178,6 @@ typedef EVENT__TYPEOF_OFF_T    ev_off_t;
 #define ev_socklen_t unsigned int
 #endif
 
-#ifdef EVENT__HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY
-#if !defined(EVENT__HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY) \
- && !defined(ss_family)
-#define ss_family __ss_family
-#endif
-#endif
-
 /**
  * A type wide enough to hold the output of "socket()" or "accept()".  On
  * Windows, this is an intptr_t; elsewhere, it is an int. */
@@ -193,6 +186,16 @@ typedef EVENT__TYPEOF_OFF_T    ev_off_t;
 #else
 #define evutil_socket_t int
 #endif
+
+/**
+ * An opaque buffer large enough to hold both IPv4 and IPv6 socket
+ * addresses.  All of libevent's public APIs that take sockaddrs are
+ * written with 'void *' arguments instead of 'struct sockaddr *'.
+ * You should use a sockaddr_in or sockaddr_in6 if you know what kind
+ * of address you have; otherwise, use one of these.  To extract the
+ * address family, write '((struct sockaddr *)ss)->sa_family'.
+ */
+typedef ev_uint8_t ev_sockaddr_store[EVENT__SOCKADDR_SPACE];
 
 /** Create two new sockets that are connected to each other.
 
@@ -386,7 +389,6 @@ int evutil_vsnprintf(char *buf, size_t buflen, const char *format, va_list ap)
 const char *evutil_inet_ntop(int af, const void *src, char *dst, size_t len);
 /** Replacement for inet_pton for platforms which lack it. */
 int evutil_inet_pton(int af, const char *src, void *dst);
-struct sockaddr;
 
 /** Parse an IPv4 or IPv6 address, with optional port, from a string.
 
@@ -400,23 +402,21 @@ struct sockaddr;
     If no port is specified, the port in the output is set to 0.
 
     @param str The string to parse.
-    @param out A struct sockaddr to hold the result.  This should probably be
-       a struct sockaddr_storage.
+    @param out Space to hold the result.
     @param outlen A pointer to the number of bytes that that 'out' can safely
        hold.  Set to the number of bytes used in 'out' on success.
     @return -1 if the address is not well-formed, if the port is out of range,
        or if out is not large enough to hold the result.  Otherwise returns
        0 on success.
 */
-int evutil_parse_sockaddr_port(const char *str, struct sockaddr *out, int *outlen);
+int evutil_parse_sockaddr_port(const char *str, void *out, ev_socklen_t *outlen);
 
 /** Compare two sockaddrs; return 0 if they are equal, or less than 0 if sa1
  * preceeds sa2, or greater than 0 if sa1 follows sa2.  If include_port is
  * true, consider the port as well as the address.  Only implemented for
  * AF_INET and AF_INET6 addresses. The ordering is not guaranteed to remain
  * the same between Libevent versions. */
-int evutil_sockaddr_cmp(const struct sockaddr *sa1, const struct sockaddr *sa2,
-    int include_port);
+int evutil_sockaddr_cmp(const void *sa1, const void *sa2, int include_port);
 
 /** As strcasecmp, but always compares the characters in locale-independent
     ASCII.  That's useful if you're handling data in ASCII-based protocols.
@@ -437,6 +437,7 @@ int evutil_ascii_strncasecmp(const char *str1, const char *str2, size_t n);
     (This is just an alias for struct addrinfo if the system defines
     struct addrinfo.)
 */
+struct sockaddr;
 struct evutil_addrinfo {
 	int     ai_flags;     /* AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST */
 	int     ai_family;    /* PF_xxx */

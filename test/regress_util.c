@@ -230,14 +230,14 @@ static struct sa_port_ent {
 static void
 regress_sockaddr_port_parse(void *ptr)
 {
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	int i, r;
 
 	for (i = 0; sa_port_ents[i].parse; ++i) {
 		struct sa_port_ent *ent = &sa_port_ents[i];
-		int len = sizeof(ss);
-		memset(&ss, 0, sizeof(ss));
-		r = evutil_parse_sockaddr_port(ent->parse, (struct sockaddr*)&ss, &len);
+		ev_socklen_t len = sizeof(ss);
+		memset(ss, 0, len);
+		r = evutil_parse_sockaddr_port(ent->parse, ss, &len);
 		if (r < 0) {
 			if (ent->safamily)
 				TT_FAIL(("Couldn't parse %s!", ent->parse));
@@ -257,7 +257,7 @@ regress_sockaddr_port_parse(void *ptr)
 			r = evutil_inet_pton(AF_INET, ent->addr, &sin.sin_addr);
 			if (1 != r) {
 				TT_FAIL(("Couldn't parse ipv4 target %s.", ent->addr));
-			} else if (memcmp(&sin, &ss, sizeof(sin))) {
+			} else if (memcmp(&sin, ss, sizeof(sin))) {
 				TT_FAIL(("Parse for %s was not as expected.", ent->parse));
 			} else if (len != sizeof(sin)) {
 				TT_FAIL(("Length for %s not as expected.",ent->parse));
@@ -273,7 +273,7 @@ regress_sockaddr_port_parse(void *ptr)
 			r = evutil_inet_pton(AF_INET6, ent->addr, &sin6.sin6_addr);
 			if (1 != r) {
 				TT_FAIL(("Couldn't parse ipv6 target %s.", ent->addr));
-			} else if (memcmp(&sin6, &ss, sizeof(sin6))) {
+			} else if (memcmp(&sin6, ss, sizeof(sin6))) {
 				TT_FAIL(("Parse for %s was not as expected.", ent->parse));
 			} else if (len != sizeof(sin6)) {
 				TT_FAIL(("Length for %s not as expected.",ent->parse));
@@ -286,33 +286,30 @@ regress_sockaddr_port_parse(void *ptr)
 static void
 regress_sockaddr_port_format(void *ptr)
 {
-	struct sockaddr_storage ss;
-	int len;
+	ev_sockaddr_store ss;
+	ev_socklen_t len;
 	const char *cp;
 	char cbuf[128];
 	int r;
 
 	len = sizeof(ss);
-	r = evutil_parse_sockaddr_port("192.168.1.1:80",
-	    (struct sockaddr*)&ss, &len);
+	r = evutil_parse_sockaddr_port("192.168.1.1:80", ss, &len);
 	tt_int_op(r,==,0);
-	cp = evutil_format_sockaddr_port_(
-		(struct sockaddr*)&ss, cbuf, sizeof(cbuf));
+	cp = evutil_format_sockaddr_port_(ss, cbuf, sizeof(cbuf));
 	tt_ptr_op(cp,==,cbuf);
 	tt_str_op(cp,==,"192.168.1.1:80");
 
 	len = sizeof(ss);
-	r = evutil_parse_sockaddr_port("[ff00::8010]:999",
-	    (struct sockaddr*)&ss, &len);
+	r = evutil_parse_sockaddr_port("[ff00::8010]:999", ss, &len);
 	tt_int_op(r,==,0);
-	cp = evutil_format_sockaddr_port_(
-		(struct sockaddr*)&ss, cbuf, sizeof(cbuf));
+	cp = evutil_format_sockaddr_port_(ss, cbuf, sizeof(cbuf));
 	tt_ptr_op(cp,==,cbuf);
 	tt_str_op(cp,==,"[ff00::8010]:999");
 
-	ss.ss_family=99;
-	cp = evutil_format_sockaddr_port_(
-		(struct sockaddr*)&ss, cbuf, sizeof(cbuf));
+	len = sizeof(ss);
+	memset(ss, 0, len);
+	((struct sockaddr *)ss)->sa_family = 99;
+	cp = evutil_format_sockaddr_port_(ss, cbuf, sizeof(cbuf));
 	tt_ptr_op(cp,==,cbuf);
 	tt_str_op(cp,==,"<addr with socktype 99>");
 end:
@@ -341,14 +338,14 @@ static struct sa_pred_ent {
 static void
 test_evutil_sockaddr_predicates(void *ptr)
 {
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	int r, i;
 
 	for (i=0; sa_pred_entries[i].parse; ++i) {
 		struct sa_pred_ent *ent = &sa_pred_entries[i];
-		int len = sizeof(ss);
+		ev_socklen_t len = sizeof(ss);
 
-		r = evutil_parse_sockaddr_port(ent->parse, (struct sockaddr*)&ss, &len);
+		r = evutil_parse_sockaddr_port(ent->parse, ss, &len);
 
 		if (r<0) {
 			TT_FAIL(("Couldn't parse %s!", ent->parse));
@@ -356,7 +353,7 @@ test_evutil_sockaddr_predicates(void *ptr)
 		}
 
 		/* sockaddr_is_loopback */
-		if (ent->is_loopback != evutil_sockaddr_is_loopback_((struct sockaddr*)&ss)) {
+		if (ent->is_loopback != evutil_sockaddr_is_loopback_(ss)) {
 			TT_FAIL(("evutil_sockaddr_loopback(%s) not as expected",
 				ent->parse));
 		}
@@ -808,8 +805,9 @@ int
 test_ai_eq_(const struct evutil_addrinfo *ai, const char *sockaddr_port,
     int socktype, int protocol, int line)
 {
-	struct sockaddr_storage ss;
-	int slen = sizeof(ss);
+	ev_sockaddr_store ss;
+	ev_socklen_t slen = sizeof(ss);
+	struct sockaddr *sa = (struct sockaddr *)ss;
 	int gotport;
 	char buf[128];
 	memset(&ss, 0, sizeof(ss));
@@ -818,15 +816,14 @@ test_ai_eq_(const struct evutil_addrinfo *ai, const char *sockaddr_port,
 	if (protocol > 0)
 		tt_int_op(ai->ai_protocol, ==, protocol);
 
-	if (evutil_parse_sockaddr_port(
-		    sockaddr_port, (struct sockaddr*)&ss, &slen)<0) {
+	if (evutil_parse_sockaddr_port(sockaddr_port, ss, &slen)<0) {
 		TT_FAIL(("Couldn't parse expected address %s on line %d",
 			sockaddr_port, line));
 		return -1;
 	}
-	if (ai->ai_family != ss.ss_family) {
+	if (ai->ai_family != sa->sa_family) {
 		TT_FAIL(("Address family %d did not match %d on line %d",
-			ai->ai_family, ss.ss_family, line));
+			ai->ai_family, sa->sa_family, line));
 		return -1;
 	}
 	if (ai->ai_addr->sa_family == AF_INET) {
@@ -846,7 +843,7 @@ test_ai_eq_(const struct evutil_addrinfo *ai, const char *sockaddr_port,
 			return -1;
 		}
 	}
-	if (evutil_sockaddr_cmp(ai->ai_addr, (struct sockaddr*)&ss, 1)) {
+	if (evutil_sockaddr_cmp(ai->ai_addr, ss, 1)) {
 		TT_FAIL(("Wanted %s, got %s:%d on line %d", sockaddr_port,
 			buf, gotport, line));
 		return -1;

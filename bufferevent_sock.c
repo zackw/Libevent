@@ -348,8 +348,7 @@ bufferevent_socket_new(struct event_base *base, evutil_socket_t fd,
 }
 
 int
-bufferevent_socket_connect(struct bufferevent *bev,
-    struct sockaddr *sa, int socklen)
+bufferevent_socket_connect(struct bufferevent *bev, const void *addr, ev_socklen_t alen)
 {
 	struct bufferevent_private *bufev_p =
 	    EVUTIL_UPCAST(bev, struct bufferevent_private, bev);
@@ -358,6 +357,7 @@ bufferevent_socket_connect(struct bufferevent *bev,
 	int r = 0;
 	int result=-1;
 	int ownfd = 0;
+        const struct sockaddr *sa = addr;
 
 	bufferevent_incref_and_lock_(bev);
 
@@ -378,7 +378,7 @@ bufferevent_socket_connect(struct bufferevent *bev,
 #ifdef _WIN32
 		if (bufferevent_async_can_connect_(bev)) {
 			bufferevent_setfd(bev, fd);
-			r = bufferevent_async_connect_(bev, fd, sa, socklen);
+			r = bufferevent_async_connect_(bev, fd, addr, alen);
 			if (r < 0)
 				goto freesock;
 			bufev_p->connecting = 1;
@@ -386,7 +386,7 @@ bufferevent_socket_connect(struct bufferevent *bev,
 			goto done;
 		} else
 #endif
-		r = evutil_socket_connect_(&fd, sa, socklen);
+		r = evutil_socket_connect_(&fd, addr, alen);
 		if (r < 0)
 			goto freesock;
 	}

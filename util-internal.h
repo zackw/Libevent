@@ -250,13 +250,13 @@ int evutil_open_closeonexec_(const char *pathname, int flags, unsigned mode);
 int evutil_read_file_(const char *filename, char **content_out, size_t *len_out,
     int is_binary);
 
-int evutil_socket_connect_(evutil_socket_t *fd_ptr, struct sockaddr *sa, int socklen);
+int evutil_socket_connect_(evutil_socket_t *fd_ptr, const void *sa, ev_socklen_t socklen);
 
 int evutil_socket_finished_connecting_(evutil_socket_t fd);
 
 int evutil_ersatz_socketpair_(int, int , int, evutil_socket_t[]);
 
-int evutil_resolve_(int family, const char *hostname, struct sockaddr *sa,
+int evutil_resolve_(int family, const char *hostname, void *sa,
     ev_socklen_t *socklen, int port);
 
 const char *evutil_getenv_(const char *name);
@@ -319,21 +319,6 @@ ev_int32_t evutil_weakrand_range_(struct evutil_weakrand_state *seed, ev_int32_t
 #define EVUTIL_FAILURE_CHECK(cond) EVUTIL_UNLIKELY(cond)
 #endif
 
-#ifndef HAVE_STRUCT_SOCKADDR_STORAGE
-/* Replacement for sockaddr storage that we can use internally on platforms
- * that lack it.  It is not space-efficient, but neither is sockaddr_storage.
- */
-struct sockaddr_storage {
-	union {
-		struct sockaddr ss_sa;
-		struct sockaddr_in ss_sin;
-		struct sockaddr_in6 ss_sin6;
-		char ss_padding[128];
-	} ss_union;
-};
-#define ss_family ss_union.ss_sa.sa_family
-#endif
-
 /* Internal addrinfo error code.  This one is returned from only from
  * evutil_getaddrinfo_common_, when we are sure that we'll have to hit a DNS
  * server. */
@@ -349,7 +334,7 @@ typedef struct evdns_getaddrinfo_request* (*evdns_getaddrinfo_fn)(
 
 void evutil_set_evdns_getaddrinfo_fn_(evdns_getaddrinfo_fn fn);
 
-struct evutil_addrinfo *evutil_new_addrinfo_(struct sockaddr *sa,
+struct evutil_addrinfo *evutil_new_addrinfo_(const void *sa,
     ev_socklen_t socklen, const struct evutil_addrinfo *hints);
 struct evutil_addrinfo *evutil_addrinfo_append_(struct evutil_addrinfo *first,
     struct evutil_addrinfo *append);
@@ -364,7 +349,7 @@ int evutil_getaddrinfo_async_(struct evdns_base *dns_base,
 
 /** Return true iff sa is a looback address. (That is, it is 127.0.0.1/8, or
  * ::1). */
-int evutil_sockaddr_is_loopback_(const struct sockaddr *sa);
+int evutil_sockaddr_is_loopback_(const void *sa);
 
 
 /**
@@ -372,7 +357,7 @@ int evutil_sockaddr_is_loopback_(const struct sockaddr *sa);
     Returns a pointer to out.  Always writes something into out, so it's safe
     to use the output of this function without checking it for NULL.
  */
-const char *evutil_format_sockaddr_port_(const struct sockaddr *sa, char *out, size_t outlen);
+const char *evutil_format_sockaddr_port_(const void *sa, char *out, size_t outlen);
 
 int evutil_hex_char_to_int_(char c);
 
@@ -430,7 +415,7 @@ HANDLE evutil_load_windows_system_library_(const TCHAR *library_name);
 #endif
 
 evutil_socket_t evutil_socket_(int domain, int type, int protocol);
-evutil_socket_t evutil_accept4_(evutil_socket_t sockfd, struct sockaddr *addr,
+evutil_socket_t evutil_accept4_(evutil_socket_t sockfd, void *addr,
     ev_socklen_t *addrlen, int flags);
 int evutil_make_internal_pipe_(evutil_socket_t fd[2]);
 evutil_socket_t evutil_eventfd_(unsigned initval, int flags);

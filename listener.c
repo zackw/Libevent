@@ -205,13 +205,13 @@ evconnlistener_new(struct event_base *base,
 
 struct evconnlistener *
 evconnlistener_new_bind(struct event_base *base, evconnlistener_cb cb,
-    void *ptr, unsigned flags, int backlog, const struct sockaddr *sa,
-    int socklen)
+    void *ptr, unsigned flags, int backlog, const void *addr,
+    ev_socklen_t alen)
 {
 	struct evconnlistener *listener;
 	evutil_socket_t fd;
 	int on = 1;
-	int family = sa ? sa->sa_family : AF_UNSPEC;
+	int family = addr ? ((const struct sockaddr *)addr)->sa_family : AF_UNSPEC;
 	int socktype = SOCK_STREAM | EVUTIL_SOCK_NONBLOCK;
 
 	if (backlog == 0)
@@ -237,8 +237,8 @@ evconnlistener_new_bind(struct event_base *base, evconnlistener_cb cb,
 			goto err;
 	}
 
-	if (sa) {
-		if (bind(fd, sa, socklen)<0)
+	if (addr) {
+		if (bind(fd, addr, alen)<0)
 			goto err;
 	}
 
@@ -386,9 +386,11 @@ listener_read_cb(evutil_socket_t fd, short what, void *p)
 	void *user_data;
 	LOCK(lev);
 	while (1) {
-		struct sockaddr_storage ss;
+		ev_sockaddr_store ss;
 		ev_socklen_t socklen = sizeof(ss);
-		evutil_socket_t new_fd = evutil_accept4_(fd, (struct sockaddr*)&ss, &socklen, lev->accept4_flags);
+		evutil_socket_t new_fd =
+			evutil_accept4_(fd, (struct sockaddr*)ss, &socklen,
+					lev->accept4_flags);
 		if (new_fd < 0)
 			break;
 		if (socklen == 0) {
@@ -407,7 +409,7 @@ listener_read_cb(evutil_socket_t fd, short what, void *p)
 		cb = lev->cb;
 		user_data = lev->user_data;
 		UNLOCK(lev);
-		cb(lev, new_fd, (struct sockaddr*)&ss, (int)socklen,
+		cb(lev, new_fd, (struct sockaddr*)ss, (int)socklen,
 		    user_data);
 		LOCK(lev);
 		if (lev->refcnt == 1) {
@@ -794,7 +796,7 @@ evconnlistener_new_async(struct event_base *base,
     evconnlistener_cb cb, void *ptr, unsigned flags, int backlog,
     evutil_socket_t fd)
 {
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	int socklen = sizeof(ss);
 	struct evconnlistener_iocp *lev;
 	int i;
@@ -846,7 +848,8 @@ evconnlistener_new_async(struct event_base *base,
 		goto err_delete_lock;
 	}
 	for (i = 0; i < lev->n_accepting; ++i) {
-		lev->accepting[i] = new_accepting_socket(lev, ss.ss_family);
+		struct sockaddr *sa = (struct sockaddr *)ss;
+		lev->accepting[i] = new_accepting_socket(lev, sa->sa_family);
 		if (!lev->accepting[i]) {
 			event_warnx("Couldn't create accepting socket");
 			goto err_free_accepting;

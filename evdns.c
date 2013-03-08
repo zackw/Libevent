@@ -219,7 +219,7 @@ struct reply {
 
 struct nameserver {
 	evutil_socket_t socket;	 /* a connected UDP socket */
-	struct sockaddr_storage address;
+	ev_sockaddr_store address;
 	ev_socklen_t addrlen;
 	int failed_times;  /* number of times which we have given this server a chance */
 	int timedout;  /* number of times in a row a request has timed out */
@@ -280,7 +280,7 @@ struct server_request {
 
 	u16 trans_id; /* Transaction id. */
 	struct evdns_server_port *port; /* Which port received this request on? */
-	struct sockaddr_storage addr; /* Where to send the response */
+	ev_sockaddr_store addr; /* Where to send the response */
 	ev_socklen_t addrlen; /* length of addr */
 
 	int n_answer; /* how many answer RRs have been set? */
@@ -339,7 +339,7 @@ struct evdns_base {
 	struct timeval global_nameserver_probe_initial_timeout;
 
 	/** Port to bind to for outgoing DNS packets. */
-	struct sockaddr_storage global_outgoing_address;
+	ev_sockaddr_store global_outgoing_address;
 	/** ev_socklen_t for global_outgoing_address. 0 if it isn't set. */
 	ev_socklen_t global_outgoing_addrlen;
 
@@ -1351,7 +1351,7 @@ nameserver_pick(struct evdns_base *base) {
 /* this is called when a namesever socket is ready for reading */
 static void
 nameserver_read(struct nameserver *ns) {
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	ev_socklen_t addrlen = sizeof(ss);
 	u8 packet[1500];
 	char addrbuf[128];
@@ -1389,13 +1389,13 @@ nameserver_read(struct nameserver *ns) {
 static void
 server_port_read(struct evdns_server_port *s) {
 	u8 packet[1500];
-	struct sockaddr_storage addr;
+	ev_sockaddr_store addr;
 	ev_socklen_t addrlen;
 	int r;
 	ASSERT_LOCKED(s);
 
 	for (;;) {
-		addrlen = sizeof(struct sockaddr_storage);
+		addrlen = sizeof(addr);
 		r = recvfrom(s->socket, (void*)packet, sizeof(packet), 0,
 					 (struct sockaddr*) &addr, &addrlen);
 		if (r < 0) {
@@ -2125,12 +2125,13 @@ evdns_server_request_drop(struct evdns_server_request *req_)
 
 /* exported function */
 int
-evdns_server_request_get_requesting_addr(struct evdns_server_request *req_, struct sockaddr *sa, int addr_len)
+evdns_server_request_get_requesting_addr(struct evdns_server_request *req_,
+					 void *addr, ev_socklen_t addr_len)
 {
 	struct server_request *req = TO_SERVER_REQUEST(req_);
-	if (addr_len < (int)req->addrlen)
+	if (addr_len < req->addrlen)
 		return -1;
-	memcpy(sa, &(req->addr), req->addrlen);
+	memcpy(addr, &(req->addr), req->addrlen);
 	return req->addrlen;
 }
 
@@ -2577,9 +2578,9 @@ sockaddr_getport(struct sockaddr *sa)
 /* exported function */
 int
 evdns_base_nameserver_ip_add(struct evdns_base *base, const char *ip_as_string) {
-	struct sockaddr_storage ss;
+	ev_sockaddr_store ss;
 	struct sockaddr *sa;
-	int len = sizeof(ss);
+	ev_socklen_t len = sizeof(ss);
 	int res;
 	if (evutil_parse_sockaddr_port(ip_as_string, (struct sockaddr *)&ss,
 		&len)) {
@@ -2606,7 +2607,8 @@ evdns_nameserver_ip_add(const char *ip_as_string) {
 
 int
 evdns_base_nameserver_sockaddr_add(struct evdns_base *base,
-    const struct sockaddr *sa, ev_socklen_t len, unsigned flags)
+				   const void *sa, ev_socklen_t len,
+				   unsigned flags)
 {
 	int res;
 	EVUTIL_ASSERT(base);
@@ -3428,10 +3430,10 @@ evdns_base_set_option_impl(struct evdns_base *base,
 	} else if (str_matches_option(option, "bind-to:")) {
 		/* XXX This only applies to successive nameservers, not
 		 * to already-configured ones.	We might want to fix that. */
-		int len = sizeof(base->global_outgoing_address);
+		ev_socklen_t len = sizeof(base->global_outgoing_address);
 		if (!(flags & DNS_OPTION_NAMESERVERS)) return 0;
 		if (evutil_parse_sockaddr_port(val,
-			(struct sockaddr*)&base->global_outgoing_address, &len))
+			base->global_outgoing_address, &len))
 			return -1;
 		base->global_outgoing_addrlen = len;
 	} else if (str_matches_option(option, "initial-probe-timeout:")) {
@@ -4022,8 +4024,8 @@ evdns_base_parse_hosts_line(struct evdns_base *base, char *line)
 	static const char *const delims = " \t";
 	char *const addr = strtok_r(line, delims, &strtok_state);
 	char *hostname, *hash;
-	struct sockaddr_storage ss;
-	int socklen = sizeof(ss);
+	ev_sockaddr_store ss;
+	ev_socklen_t socklen = sizeof(ss);
 	ASSERT_LOCKED(base);
 
 #define NEXT_TOKEN strtok_r(NULL, delims, &strtok_state)
@@ -4032,7 +4034,7 @@ evdns_base_parse_hosts_line(struct evdns_base *base, char *line)
 		return 0;
 
 	memset(&ss, 0, sizeof(ss));
-	if (evutil_parse_sockaddr_port(addr, (struct sockaddr*)&ss, &socklen)<0)
+	if (evutil_parse_sockaddr_port(addr, ss, &socklen)<0)
 		return -1;
 	if (socklen > (int)sizeof(struct sockaddr_in6))
 		return -1;

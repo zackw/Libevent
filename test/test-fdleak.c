@@ -119,8 +119,7 @@ start_loop(void)
 {
 	struct event_base *base;
 	struct evconnlistener *listener;
-	struct sockaddr_storage ss;
-	ev_socklen_t socklen = sizeof(ss);
+	ev_socklen_t socklen;
 	evutil_socket_t fd;
 
 	base = event_base_new();
@@ -131,7 +130,7 @@ start_loop(void)
 
 	listener = evconnlistener_new_bind(base, listener_accept_cb, NULL,
 	    LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE,
-	    -1, (struct sockaddr *)&sin, sizeof(sin));
+	    -1, &sin, sizeof(sin));
 	if (listener == NULL) {
 		my_perror("Could not create listener!");
 		exit(1);
@@ -141,11 +140,11 @@ start_loop(void)
 		puts("Couldn't get fd from listener");
 		exit(1);
 	}
-	if (getsockname(fd, (struct sockaddr *)&ss, &socklen) < 0) {
+        socklen = sizeof(sin);
+	if (getsockname(fd, (struct sockaddr *)&sin, &socklen) < 0) {
 		my_perror("getsockname()");
 		exit(1);
 	}
-	memcpy(&sin, &ss, sizeof(sin));
 	if (sin.sin_family != AF_INET) {
 		puts("AF mismatch from getsockname().");
 		exit(1);
