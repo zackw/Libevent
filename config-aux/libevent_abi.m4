@@ -6,6 +6,8 @@
 # notice and this notice are preserved.  This file is offered as-is,
 # without any warranty.
 
+### Generic checks
+
 # LIBEVENT_MATCH_INTEGER_TYPE(type, size, signedness,
 #                             headers = AC_INCLUDES_DEFAULT,
 #                             [description])
@@ -143,4 +145,187 @@ for size in 1 2 3 4 5 6 7 8; do
     ])
   done
 done
+])
+
+### Checks for particular types and related requirements.
+
+# Figure out whether or not this is Windows.
+# Only sets cache variables.
+AC_DEFUN([LIBEVENT_SYS_WINDOWS],
+[AC_CACHE_CHECK([for Windows], [ac_cv_sys_win32],
+  [AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
+#ifndef _WIN32
+#error "not WIN32"
+#endif
+  ]])], [ac_cv_sys_win32=yes], [ac_cv_sys_win32=no])])
+
+AC_CACHE_CHECK([for Cygwin], [ac_cv_sys_cygwin],
+  [AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
+#ifndef __CYGWIN__
+#error "not Cygwin"
+#endif
+  ]])], [ac_cv_sys_cygwin=yes], [ac_cv_sys_cygwin=no])])
+])
+
+# LIBEVENT_TYPE_SOCKET_STRUCTS
+#
+#  Set up a shorthand variable for the socket headers, and probe for some
+#  generic socket-related structures.
+AC_DEFUN([LIBEVENT_TYPE_SOCKET_STRUCTS],
+[ev_socket_headers="#include <sys/types.h>
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#ifdef HAVE_NETINET_IN6_H
+#include <netinet/in6.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
+#ifdef _WIN32
+#define WIN32_WINNT 0x400
+#define _WIN32_WINNT 0x400
+#define WIN32_LEAN_AND_MEAN
+#if defined(_MSC_VER) && (_MSC_VER < 1300)
+#include <winsock.h>
+#else
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+#endif"
+
+AC_CHECK_TYPES([sa_family_t,
+                socklen_t,
+                struct addrinfo,
+                struct in6_addr,
+                struct sockaddr_in6,
+                struct sockaddr_storage], , ,
+               [$ev_socket_headers])
+AC_CHECK_MEMBERS([struct sockaddr_in.sin_len,
+                  struct sockaddr_in6.sin6_len], , ,
+                 [$ev_socket_headers])
+])
+
+# LIBEVENT_TYPE_SOCKET_T
+#
+#  Determine the appropriate type to use for socket descriptors,
+#  e.g. the return type of 'socket' and the first argument to 'connect'.
+AC_DEFUN([LIBEVENT_TYPE_SOCKET_T],
+[AC_REQUIRE([LIBEVENT_SYS_WINDOWS])dnl
+AC_REQUIRE([LIBEVENT__MATCH_TYPE_COMMON])dnl
+AC_REQUIRE([LIBEVENT_TYPE_SOCKET_STRUCTS])dnl
+# Either we are on a Windows system and we need to match the type
+# SOCKET (from winsock2.h), which should be the same as uintptr_t,
+# or we aren't, and socket descriptors are
+# just file descriptors, which should be regular old 'int'.
+# We don't bother with the full-blown MATCH_INTEGER_TYPE logic here.
+if test $ac_cv_sys_win32 = yes; then
+  LIBEVENT_MATCH_INTEGER_TYPE([SOCKET], [$ac_cv_sizeof_void_p], [unsigned],
+                              [$ev_socket_headers],
+   [a type that can hold socket descriptors (e.g. as returned from the
+    'socket' system call)])
+else
+  libevent_cv_typeof_SOCKET=int
+  AC_DEFINE([TYPEOF_SOCKET], [int])
+fi
+# This doesn't get its own 'checking ...' message because it'd just
+# confuse people.
+AC_CACHE_VAL([libevent_cv_verify_socket_t],
+[AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+${ev_socket_headers}
+/* Provoke a compilation error if TYPEOF_SOCKET is wrong.
+   'listen' is the most convenient function to redeclare, as it takes only
+   one non-socket argument which is guaranteed to be an 'int'. */
+extern int listen(TYPEOF_SOCKET, int);
+]])], [libevent_cv_verify_socket_t=yes], [libevent_cv_verify_socket_t=no])])
+if test $libevent_cv_verify_socket_t = no; then
+  AC_MSG_FAILURE([could not determine type to use for socket descriptors])
+fi
+])
+
+# LIBEVENT_TYPE_SOCKLEN_T
+#
+#  Determine the appropriate type to use for the length of a sockaddr
+#  object, e.g. the third argument to 'connect' and many others.
+AC_DEFUN([LIBEVENT_TYPE_SOCKLEN_T],
+[AC_REQUIRE([LIBEVENT_TYPE_SOCKET_T])
+# socklen_t is definitely either 'int' or 'unsigned int', but we don't
+# know which, and it may or may not be available as a typedef.  The
+# easiest way to probe it is to attempt to redeclare 'getsockopt',
+# whose fifth argument is supposed to be a 'socklen_t *', and which
+# does *not* have any nominally-'struct sockaddr *' arguments (some
+# C libraries have strange things instead).  However, the fourth
+# argument may be 'void *' or 'char *'.
+AC_CACHE_CHECK([for a built-in type matching socklen_t],
+               [libevent_cv_typeof_socklen_t], [dnl
+  libevent_cv_typeof_socklen_t="not found"
+  for ev_arg4 in 'void *' 'char *'; do
+    for ev_candidate in 'int' 'unsigned int'; do
+      AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+${ev_socket_headers}
+/* Provoke a compilation error if socklen_t and ${ev_candidate} are
+   incompatible types. */
+extern int getsockopt(TYPEOF_SOCKET, int, int, ${ev_arg4}, ${ev_candidate} *);
+]])],
+      [libevent_cv_typeof_socklen_t="$ev_candidate"
+       break 2])
+    done
+  done])
+if test "$libevent_cv_typeof_socklen_t" = "not found"; then
+  AC_MSG_FAILURE([could not determine type to use for socklen_t])
+fi
+AC_DEFINE_UNQUOTED([TYPEOF_SOCKLEN_T], [$libevent_cv_typeof_socklen_t],
+  [A built-in integer type compatible with compatible with `socklen_t'.
+   If this system's headers do not define `socklen_t', a type suitable
+   for the lengths of socket addresses.])
+])
+
+# LIBEVENT_SIZE_SOCKADDR
+#
+#  Determine how much space to allocate for socket addresses of
+#  arbitrary (but not AF_UNIX) family.  Will always be at least
+#  as large as the larger of 'struct sockaddr_in' and
+#  'struct sockaddr_in6'; will additionally be as large as
+#  'struct sockaddr_storage' if the system defines that type.
+
+AC_DEFUN([LIBEVENT_SIZE_SOCKADDR],
+[AC_REQUIRE([LIBEVENT_TYPE_SOCKET_STRUCTS])dnl
+ev_sockaddr_space_test="$ev_socket_headers
+#define EV_MAX(a,b) ((a)>(b)?(a):(b))
+#define EV_S_SA   sizeof(struct sockaddr)
+#define EV_S_SIN  sizeof(struct sockaddr_in)
+#define EV_S_SIN6 sizeof(struct sockaddr_in6)
+#define EV_S_SS   sizeof(struct sockaddr_storage)
+#define EV_S      EV_MAX(EV_S_SA, EV_MAX(EV_S_SIN, "
+ev_sockaddr_space_cparens="))"
+
+AS_VAR_IF([ac_cv_type_struct_sockaddr_in6], [yes], [dnl
+  AS_VAR_APPEND([ev_sockaddr_space_test],
+                ["EV_MAX(EV_S_SIN6, "])
+  AS_VAR_APPEND([ev_sockaddr_space_cparens], [")"])
+])
+AS_VAR_IF([ac_cv_type_struct_sockaddr_storage], [yes], [dnl
+  AS_VAR_APPEND([ev_sockaddr_space_test],
+                ["EV_MAX(EV_S_SS, "])
+  AS_VAR_APPEND([ev_sockaddr_space_cparens], [")"])
+])
+AS_VAR_APPEND([ev_sockaddr_space_test], ["0$ev_sockaddr_space_cparens"])
+
+AC_CACHE_CHECK([how many bytes to use for sockaddr storage],
+               [libevent_cv_space_sockaddr_storage], [dnl
+  AC_COMPUTE_INT([libevent_cv_space_sockaddr_storage],
+                 [EV_S],
+                 [$ev_sockaddr_space_test], [dnl
+    AC_MSG_FAILURE([failed to compute required space for sockaddr storage])
+])])
+AC_DEFINE_UNQUOTED([SOCKADDR_SPACE], [${libevent_cv_space_sockaddr_storage}U],
+  [Define as the size (in bytes) of a block of memory that can hold
+   socket addresses of arbitrary family.  This must be at least as large
+   as the larger of `struct sockaddr_in' and `struct sockaddr_in6', and
+   should be as large as `struct sockaddr_storage', if you have that.
+   It is not, however, necessary for this to be big enough for AF_UNIX
+   addresses.])
 ])

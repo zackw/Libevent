@@ -170,22 +170,17 @@ typedef EVENT__TYPEOF_OFF_T    ev_off_t;
 #define EV_SSIZE_MIN ((-EV_SSIZE_MAX) - 1)
 /**@}*/
 
-#ifdef EVENT__HAVE_SOCKLEN_T
-#define ev_socklen_t socklen_t
-#elif defined _WIN32
-#define ev_socklen_t int  /* needs to be signed on Windows why? */
-#else
-#define ev_socklen_t unsigned int
-#endif
+/**
+ * A type wide enough to hold the output of "socket()" or "accept()".
+ * On Windows, this is the same as the SOCKET type from <winsock2.h>;
+ * elsewhere, it is an int. */
+typedef EVENT__TYPEOF_SOCKET evutil_socket_t;
 
 /**
- * A type wide enough to hold the output of "socket()" or "accept()".  On
- * Windows, this is an intptr_t; elsewhere, it is an int. */
-#ifdef _WIN32
-#define evutil_socket_t intptr_t
-#else
-#define evutil_socket_t int
-#endif
+ * A type suitable for holding the lengths of socket addresses.
+ * For historical reasons, this is not the same as size_t; it is
+ * normally no larger than 'int', and it may or may not be signed. */
+typedef EVENT__TYPEOF_SOCKLEN_T ev_socklen_t;
 
 /**
  * An opaque buffer large enough to hold both IPv4 and IPv6 socket
