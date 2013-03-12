@@ -182,11 +182,18 @@ SYS_SRC += evthread.c
 endif
 
 BUILT_SOURCES += include/event2/event-config.h
+CLEANFILES += event-config.stamp
 
-include/event2/event-config.h: config.h make-event-config.sh
+# make-event-config.sh doesn't update the timestamp of event-config.h
+# unless its contents change.  This construct prevents event-config.h
+# itself from getting rebuilt on every build.
+include/event2/event-config.h: event-config.stamp ;
+
+event-config.stamp: config.h make-event-config.sh
 	$(AM_V_GEN)test -d include/event2 || $(MKDIR_P) include/event2
 	$(AM_V_at)$(SHELL) $(srcdir)/make-event-config.sh \
 	  $(SED) $(srcdir)/include config.h include/event2/event-config.h
+	$(AM_V_at)echo timestamp > event-config.stamp
 
 CORE_SRC =					\
 	buffer.c				\
