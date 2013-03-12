@@ -1441,7 +1441,8 @@ static void read_not_timeout_cb(evutil_socket_t fd, short what, void *arg)
 	struct read_not_timeout_param *rntp = arg;
 	char c;
 	(void) fd; (void) what;
-	read(fd, &c, 1);
+	/* In "hardening" mode, this is the only way to prevent a warning. */
+	if (read(fd, &c, 1) != 1) {}
 	rntp->events |= what;
 	++rntp->count;
 	if(2 == rntp->count) event_del(rntp->ev[0]);
