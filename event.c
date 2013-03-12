@@ -2192,6 +2192,7 @@ event_remove_timer_nolock_(struct event *ev)
 	/* If it's not pending on a timeout, we don't need to do anything. */
 	if (ev->ev_flags & EVLIST_TIMEOUT) {
 		event_queue_remove_timeout(base, ev);
+		evutil_timerclear(&ev->ev_.ev_io.ev_timeout);
 	}
 
 	return (0);
@@ -3451,6 +3452,8 @@ event_global_setup_locks_(const int enable_locks)
 	EVTHREAD_SETUP_GLOBAL_LOCK(event_debug_map_lock_, 0);
 #endif
 	if (evsig_global_setup_locks_(enable_locks) < 0)
+		return -1;
+	if (evutil_global_setup_locks_(enable_locks) < 0)
 		return -1;
 	if (evutil_secure_rng_global_setup_locks_(enable_locks) < 0)
 		return -1;

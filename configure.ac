@@ -52,6 +52,9 @@ LIBEVENT_ENABLE_BACKENDS
 # after all command line validation.
 AM_INIT_AUTOMAKE
 dnl AM_SILENT_RULES req. automake 1.11; OI ships 1.10.
+dnl AM_SILENT_RULES should be off by default, as it conceals information
+dnl that may be required for diagnosing failures in an inaccessible
+dnl build environment (e.g. the Debian autobuilders).
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([no])])
 
 AM_CONDITIONAL([THREAD_SUPPORT], [test $enable_thread_support = yes])

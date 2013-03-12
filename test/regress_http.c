@@ -2396,6 +2396,7 @@ http_uriencode_test(void *ptr)
 {
 	char *s=NULL, *s2=NULL;
 	size_t sz;
+	int bytes_decoded;
 
 #define ENC(from,want,plus) do {				\
 		s = evhttp_uriencode((from), -1, (plus));	\
@@ -2449,6 +2450,15 @@ http_uriencode_test(void *ptr)
 	s = evhttp_uriencode("hello\0world", 11, 0);
 	tt_assert(s);
 	tt_str_op(s,==,"hello%00world");
+	free(s);
+	s = NULL;
+
+	/* Now try decoding just part of string. */
+	s = malloc(6 + 1 /* NUL byte */);
+	bytes_decoded = evhttp_decode_uri_internal("hello%20%20", 6, s, 0);
+	tt_assert(s);
+	tt_int_op(bytes_decoded,==,6);
+	tt_str_op(s,==,"hello%");
 	free(s);
 	s = NULL;
 
@@ -3034,16 +3044,21 @@ http_stream_in_cancel_test(void *arg)
 static void
 http_connection_fail_done(struct evhttp_request *req, void *arg)
 {
+       struct evhttp_connection *evcon = arg;
+       struct event_base *base = evhttp_connection_get_base(evcon);
+
        /* An ENETUNREACH error results in an unrecoverable
         * evhttp_connection error (see evhttp_connection_fail_()).  The
         * connection will be reset, and the user will be notified with a NULL
         * req parameter. */
        tt_assert(!req);
 
+       evhttp_connection_free(evcon);
+
        test_ok = 1;
 
  end:
-       event_base_loopexit(arg, NULL);
+       event_base_loopexit(base, NULL);
 }
 
 /* Test unrecoverable evhttp_connection errors by generating an ENETUNREACH
@@ -3074,7 +3089,7 @@ http_connection_fail_test(void *arg)
         * server using our make request method.
         */
 
-       req = evhttp_request_new(http_connection_fail_done, data->base);
+       req = evhttp_request_new(http_connection_fail_done, evcon);
        tt_assert(req);
 
        if (evhttp_make_request(evcon, req, EVHTTP_REQ_GET, "/") == -1) {
@@ -3086,8 +3101,7 @@ http_connection_fail_test(void *arg)
        tt_int_op(test_ok, ==, 1);
 
  end:
-       if (evcon)
-               evhttp_connection_free(evcon);
+        ;
 }
 
 static void

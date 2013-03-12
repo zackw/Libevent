@@ -186,8 +186,6 @@ static void evhttp_make_header(struct evhttp_connection *, struct evhttp_request
 static void evhttp_read_cb(struct bufferevent *, void *);
 static void evhttp_write_cb(struct bufferevent *, void *);
 static void evhttp_error_cb(struct bufferevent *bufev, short what, void *arg);
-static int evhttp_decode_uri_internal(const char *uri, size_t length,
-    char *ret, int decode_plus);
 static int evhttp_find_vhost(struct evhttp *http, struct evhttp **outhttp,
 		  const char *hostname);
 
@@ -2323,6 +2321,8 @@ evhttp_connection_get_peer(struct evhttp_connection *evcon,
 int
 evhttp_connection_connect_(struct evhttp_connection *evcon)
 {
+	int old_state = evcon->state;
+
 	if (evcon->state == EVCON_CONNECTING)
 		return (0);
 
@@ -2360,8 +2360,11 @@ evhttp_connection_connect_(struct evhttp_connection *evcon)
 	/* make sure that we get a write callback */
 	bufferevent_enable(evcon->bufev, EV_WRITE);
 
+	evcon->state = EVCON_CONNECTING;
+
 	if (bufferevent_socket_connect_hostname(evcon->bufev, evcon->dns_base,
 		AF_UNSPEC, evcon->address, evcon->port) < 0) {
+		evcon->state = old_state;
 		event_sock_warn(evcon->fd, "%s: connection to \"%s\" failed",
 		    __func__, evcon->address);
 		/* some operating systems return ECONNREFUSED immediately
@@ -2371,8 +2374,6 @@ evhttp_connection_connect_(struct evhttp_connection *evcon)
 		evhttp_connection_cb_cleanup(evcon);
 		return (0);
 	}
-
-	evcon->state = EVCON_CONNECTING;
 
 	return (0);
 }
@@ -2863,7 +2864,7 @@ evhttp_encode_uri(const char *str)
  *     a ?.  -1 is deprecated.
  * @return the number of bytes written to 'ret'.
  */
-static int
+int
 evhttp_decode_uri_internal(
 	const char *uri, size_t length, char *ret, int decode_plus_ctl)
 {
@@ -2879,8 +2880,8 @@ evhttp_decode_uri_internal(
 				decode_plus = 1;
 		} else if (c == '+' && decode_plus) {
 			c = ' ';
-		} else if (c == '%' && EVUTIL_ISXDIGIT_(uri[i+1]) &&
-		    EVUTIL_ISXDIGIT_(uri[i+2])) {
+		} else if ((i + 2) < length && c == '%' &&
+			EVUTIL_ISXDIGIT_(uri[i+1]) && EVUTIL_ISXDIGIT_(uri[i+2])) {
 			char tmp[3];
 			tmp[0] = uri[i+1];
 			tmp[1] = uri[i+2];
