@@ -55,4 +55,7 @@
    includes stddef.h, so we don't have to do it again.  */
 #define evutil_offsetof(type, field) offsetof(type, field)
 
+/* Obsolete alternative name for evutil_closesocket. */
+#define EVUTIL_CLOSESOCKET(s) evutil_closesocket(s)
+
 #endif

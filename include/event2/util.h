@@ -239,7 +239,6 @@ int evutil_make_socket_closeonexec(evutil_socket_t sock);
     @return 0 on success, -1 on failure
  */
 int evutil_closesocket(evutil_socket_t sock);
-#define EVUTIL_CLOSESOCKET(s) evutil_closesocket(s)
 
 /** Do platform-specific operations, if possible, to make a tcp listener
  *  socket defer accept()s until there is data to read.

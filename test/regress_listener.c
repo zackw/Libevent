@@ -127,11 +127,11 @@ regress_pick_a_port(void *arg)
 
 end:
 	if (fd1>=0)
-		EVUTIL_CLOSESOCKET(fd1);
+		evutil_closesocket(fd1);
 	if (fd2>=0)
-		EVUTIL_CLOSESOCKET(fd2);
+		evutil_closesocket(fd2);
 	if (fd3>=0)
-		EVUTIL_CLOSESOCKET(fd3);
+		evutil_closesocket(fd3);
 	if (listener1)
 		evconnlistener_free(listener1);
 	if (listener2)

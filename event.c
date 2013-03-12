@@ -720,9 +720,9 @@ event_base_free(struct event_base *base)
 	/* threading fds if we have them */
 	if (base->th_notify_fd[0] != -1) {
 		event_del(&base->th_notify);
-		EVUTIL_CLOSESOCKET(base->th_notify_fd[0]);
+		evutil_closesocket(base->th_notify_fd[0]);
 		if (base->th_notify_fd[1] != -1)
-			EVUTIL_CLOSESOCKET(base->th_notify_fd[1]);
+			evutil_closesocket(base->th_notify_fd[1]);
 		base->th_notify_fd[0] = -1;
 		base->th_notify_fd[1] = -1;
 		event_debug_unassign(&base->th_notify);
@@ -873,9 +873,9 @@ event_reinit(struct event_base *base)
 		event_debug_unassign(&base->sig.ev_signal);
 		memset(&base->sig.ev_signal, 0, sizeof(base->sig.ev_signal));
 		if (base->sig.ev_signal_pair[0] != -1)
-			EVUTIL_CLOSESOCKET(base->sig.ev_signal_pair[0]);
+			evutil_closesocket(base->sig.ev_signal_pair[0]);
 		if (base->sig.ev_signal_pair[1] != -1)
-			EVUTIL_CLOSESOCKET(base->sig.ev_signal_pair[1]);
+			evutil_closesocket(base->sig.ev_signal_pair[1]);
 		had_signal_added = 1;
 		base->sig.ev_signal_added = 0;
 	}
@@ -885,9 +885,9 @@ event_reinit(struct event_base *base)
 	}
 	if (base->th_notify_fd[0] != -1) {
 		event_del_nolock_(&base->th_notify);
-		EVUTIL_CLOSESOCKET(base->th_notify_fd[0]);
+		evutil_closesocket(base->th_notify_fd[0]);
 		if (base->th_notify_fd[1] != -1)
-			EVUTIL_CLOSESOCKET(base->th_notify_fd[1]);
+			evutil_closesocket(base->th_notify_fd[1]);
 		base->th_notify_fd[0] = -1;
 		base->th_notify_fd[1] = -1;
 		event_debug_unassign(&base->th_notify);

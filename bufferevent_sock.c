@@ -590,7 +590,7 @@ be_socket_destruct(struct bufferevent *bufev)
 	event_del(&bufev->ev_write);
 
 	if ((bufev_p->options & BEV_OPT_CLOSE_ON_FREE) && fd >= 0)
-		EVUTIL_CLOSESOCKET(fd);
+		evutil_closesocket(fd);
 }
 
 static int
