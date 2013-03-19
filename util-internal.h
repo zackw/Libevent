@@ -47,6 +47,13 @@
 extern "C" {
 #endif
 
+/* Not guaranteed to be defined by system headers pre-C99; needed on
+ * at least FreeBSD 7.x.
+ */
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t)-1)
+#endif
+
 /* A good no-op to use in macro definitions. */
 #define EVUTIL_NIL_STMT_ ((void)0)
 /* A no-op that tricks the compiler into thinking a condition is used while
